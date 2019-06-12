@@ -2321,6 +2321,35 @@ public class ShapeOpValidation extends BaseOpValidation {
     }
 
     @Test
+    public void testPermuteShapeDynamicAxis(){
+
+        DynamicCustomOp op = DynamicCustomOp.builder("permute")
+                .addInputs(Nd4j.rand(DataType.FLOAT, 3, 4),
+                        Nd4j.createFromArray(1, 0))
+                .build();
+        List<LongShapeDescriptor> l = op.calculateOutputShape();
+        System.out.println(Arrays.toString(l.get(0).getShape()));
+        assertArrayEquals(new long[]{4, 3}, l.get(0).getShape());
+
+        op = DynamicCustomOp.builder("permute")
+                .addInputs(Nd4j.rand(DataType.FLOAT, 3, 4))
+                .addIntegerArguments(1, 0)
+                .build();
+        l = op.calculateOutputShape();
+        System.out.println(Arrays.toString(l.get(0).getShape()));
+        assertArrayEquals(new long[]{4, 3}, l.get(0).getShape());
+
+
+        op = DynamicCustomOp.builder("permute")
+                .addInputs(Nd4j.rand(DataType.FLOAT, 3, 4, 5),
+                        Nd4j.createFromArray(1, 2, 0))
+                .build();
+        l = op.calculateOutputShape();
+        System.out.println(Arrays.toString(l.get(0).getShape()));
+        assertArrayEquals(new long[]{4, 5, 3}, l.get(0).getShape());
+    }
+
+    @Test
     public void testGather2(){
         SameDiff sd = SameDiff.create();
         SDVariable input = sd.var("in", Nd4j.rand(DataType.FLOAT, 2, 5));

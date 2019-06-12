@@ -164,34 +164,6 @@ public class Transpose extends DynamicCustomOp {
     }
 
     @Override
-    public List<LongShapeDescriptor> calculateOutputShape() {
-        if(numInputArguments() > 1){
-            return super.calculateOutputShape();
-        } else if (args().length > 1) {
-            if (args()[0].getArr() != null && args()[1].getArr() != null) {
-                return super.calculateOutputShape();
-            }
-        } else  if (permuteDims == null && arg() != null && arg().getShape() != null) {
-            this.permuteDims = ArrayUtil.reverseCopy(ArrayUtil.range(0, arg().getShape().length));
-            val permutedShape = ArrayUtil.permute(arg().getShape(), permuteDims);
-            return Arrays.asList(LongShapeDescriptor.fromShape(permutedShape, larg().dataType()));
-        } else if (permuteDims != null && arg() != null && (!inputArguments.isEmpty() || arg().getShape() != null)) {
-            long[] shape = null;
-            if(!inputArguments.isEmpty())
-                shape = inputArguments.get(0).shape();
-            else
-                shape = arg().getShape();
-            val permutedShape = ArrayUtil.permute(shape, permuteDims);
-            SDVariable lArg = larg();
-            DataType lArgType = lArg.dataType();
-            return Arrays.asList(LongShapeDescriptor.fromShape(permutedShape, lArgType));
-        }
-
-        return Collections.emptyList();
-    }
-
-
-    @Override
     public List<SDVariable> doDiff(List<SDVariable> i_v) {
         SDVariable ret;
         if(permuteDims == null) {
