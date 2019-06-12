@@ -193,6 +193,14 @@ public class DifferentialFunctionFactory {
         return new Range(sameDiff(), from, to, step, dataType).outputVariable();
     }
 
+    public SDVariable range(SDVariable from, SDVariable to, SDVariable step, DataType dataType) {
+        return new Range(sameDiff(), from, to, step, dataType).outputVariable();
+    }
+
+    public SDVariable[] listdiff(SDVariable x, SDVariable y){
+        return new ListDiff(sameDiff(), x, y).outputVariables();
+    }
+
     public SDVariable cast(SDVariable toCast, DataType toType){
         return new Cast(sameDiff(), toCast, toType).outputVariable();
     }
@@ -858,6 +866,10 @@ public class DifferentialFunctionFactory {
 
     public SDVariable permute(SDVariable iX, int... dimensions) {
         return new Permute(sameDiff(), iX, dimensions).outputVariable();
+    }
+
+    public SDVariable permute(SDVariable in, SDVariable dimensions) {
+        return new Permute(sameDiff(), in, dimensions).outputVariable();
     }
 
     public SDVariable noop(SDVariable input) {

@@ -2319,4 +2319,18 @@ public class ShapeOpValidation extends BaseOpValidation {
         op.setOutputArgument(0, Nd4j.empty(DataType.FLOAT));
         Nd4j.exec(op);
     }
+
+    @Test
+    public void testGather2(){
+        SameDiff sd = SameDiff.create();
+        SDVariable input = sd.var("in", Nd4j.rand(DataType.FLOAT, 2, 5));
+        SDVariable indices = sd.constant("indices", Nd4j.createFromArray(3));
+
+        SDVariable logsoftmax = input.sub("logsoftmax", sd.math().log(sd.math().exp(input).sum()));
+        SDVariable gathered = sd.gather(logsoftmax, indices, 1);
+
+        sd.exec(null, gathered.getVarName());
+        sd.setLossVariables(gathered.getVarName());
+        sd.execBackwards(null);
+    }
 }

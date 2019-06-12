@@ -52,7 +52,10 @@ public class Transpose extends DynamicCustomOp {
     public Transpose(SameDiff sameDiff, SDVariable in, int[] permuteDims){
         super(null, sameDiff, new SDVariable[]{in});
         this.permuteDims = permuteDims;
+    }
 
+    protected Transpose(SameDiff sameDiff, SDVariable in, SDVariable permuteDims){
+        super(null, sameDiff, new SDVariable[]{in, permuteDims});
     }
 
     public Transpose(INDArray input, INDArray result){
