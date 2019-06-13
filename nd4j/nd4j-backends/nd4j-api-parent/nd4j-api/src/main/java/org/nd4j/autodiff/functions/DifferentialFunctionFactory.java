@@ -1616,8 +1616,8 @@ public class DifferentialFunctionFactory {
         return new LogSoftMaxDerivative(sameDiff(), arg, wrt).outputVariable();
     }
 
-    public SDVariable logSumExp(SDVariable arg, int... dimension) {
-        return new LogSumExp(sameDiff(), arg, dimension).outputVariable();
+    public SDVariable logSumExp(SDVariable arg, boolean keepDims, int... dimension) {
+        return new LogSumExp(sameDiff(), arg, keepDims, dimension).outputVariable();
     }
 
 

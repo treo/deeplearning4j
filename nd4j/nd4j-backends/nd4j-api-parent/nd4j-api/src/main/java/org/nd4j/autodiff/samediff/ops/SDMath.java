@@ -1663,8 +1663,12 @@ public class SDMath extends SDOps {
      * @return Output variable
      */
     public SDVariable logSumExp(String name, SDVariable input, int... dimensions) {
+        return logSumExp(name, input, false, dimensions);
+    }
+
+    public SDVariable logSumExp(String name, SDVariable input, boolean keepDims, int... dimensions) {
         validateNumerical("logSumExp reduction", input);
-        SDVariable ret = f().logSumExp(input, dimensions);
+        SDVariable ret = f().logSumExp(input, keepDims, dimensions);
         return updateVariableNameAndReference(ret, name);
     }
 
