@@ -24,9 +24,9 @@
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
 __device__
-void oesTadKernel(void *vx, Nd4jLong *xShapeInfo, 
-                int *dimension, int dimensionLength, 
-                Nd4jLong *tadShapeInfo, Nd4jLong *tadOffsets, 
+void oesTadKernel(void *vx, Nd4jLong *xShapeInfo,
+                int *dimension, int dimensionLength,
+                Nd4jLong *tadShapeInfo, Nd4jLong *tadOffsets,
                 bool descending) {
 
     auto x = static_cast<T*>(vx);
@@ -56,7 +56,7 @@ void oesTadKernel(void *vx, Nd4jLong *xShapeInfo,
         int iterations = xTadLength;
         if (cached) {
             for (int tid = threadIdx.x; tid < xTadLength; tid += blockDim.x) {
-                auto t0 = getDevicePosition(tadShapeInfo, tid, xTadLength);
+                auto t0 = shape::getIndexOffset(tid, tadShapeInfo, xTadLength);
                 shmem[tid] = dx[t0];
             }
 
@@ -70,8 +70,8 @@ void oesTadKernel(void *vx, Nd4jLong *xShapeInfo,
                 for (int tid = threadIdx.x; tid < xTadLength; tid += blockDim.x) {
                     auto top = 2 * tid + 1;
                     if (top < xTadLength) {
-                        auto t0 = cached ? top - 1 : getDevicePosition(tadShapeInfo, top - 1, xTadLength);
-                        auto t1 = cached ? top : getDevicePosition(tadShapeInfo, top, xTadLength);
+                        auto t0 = cached ? top - 1 : shape::getIndexOffset(top - 1, tadShapeInfo, xTadLength);
+                        auto t1 = cached ? top : shape::getIndexOffset(top, tadShapeInfo, xTadLength);
 
                         if (!descending == (dx[t0] > dx[t1])) {
                             T dt0 = dx[t0];
@@ -84,8 +84,8 @@ void oesTadKernel(void *vx, Nd4jLong *xShapeInfo,
                 for (int tid = threadIdx.x; tid < xTadLength; tid += blockDim.x) {
                     auto top = 2 * tid + 2;
                     if (top < xTadLength) {
-                        auto t0 = cached ? top - 1 : getDevicePosition(tadShapeInfo, top - 1, xTadLength);
-                        auto t1 = cached ? top : getDevicePosition(tadShapeInfo, top, xTadLength);
+                        auto t0 = cached ? top - 1 : shape::getIndexOffset(top - 1, tadShapeInfo, xTadLength);
+                        auto t1 = cached ? top : shape::getIndexOffset(top, tadShapeInfo, xTadLength);
 
                         if (!descending == (dx[t0] > dx[t1])) {
                             T dt0 = dx[t0];
@@ -102,7 +102,7 @@ void oesTadKernel(void *vx, Nd4jLong *xShapeInfo,
         if (cached) {
             dx = x + tadOffsets[r];
             for (int tid = threadIdx.x; tid < xTadLength; tid += blockDim.x) {
-                auto t0 = getDevicePosition(tadShapeInfo, tid, xTadLength);
+                auto t0 = shape::getIndexOffset(tid, tadShapeInfo, xTadLength);
                 dx[t0] = shmem[tid];
             }
         }
@@ -111,9 +111,9 @@ void oesTadKernel(void *vx, Nd4jLong *xShapeInfo,
 
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
-__global__ void execOesTadKernel(void *vx, Nd4jLong *xShapeInfo, 
-                                int *dimension, int dimensionLength, 
-                                Nd4jLong *tadShapeInfo, Nd4jLong *tadOffsets, 
+__global__ void execOesTadKernel(void *vx, Nd4jLong *xShapeInfo,
+                                int *dimension, int dimensionLength,
+                                Nd4jLong *tadShapeInfo, Nd4jLong *tadOffsets,
                                 bool descending) {
 
     oesTadKernel<T>(vx, xShapeInfo, dimension, dimensionLength, tadShapeInfo, tadOffsets, descending);
@@ -122,9 +122,9 @@ __global__ void execOesTadKernel(void *vx, Nd4jLong *xShapeInfo,
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
 __host__ void oesTadGeneric(dim3 &launchDims, cudaStream_t *stream,
-                                void *vx, Nd4jLong *xShapeInfo, 
-                                int *dimension, int dimensionLength, 
-                                Nd4jLong *tadShapeInfo, Nd4jLong *tadOffsets, 
+                                void *vx, Nd4jLong *xShapeInfo,
+                                int *dimension, int dimensionLength,
+                                Nd4jLong *tadShapeInfo, Nd4jLong *tadOffsets,
                                 bool descending) {
 
     execOesTadKernel<T><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(vx, xShapeInfo, dimension, dimensionLength, tadShapeInfo, tadOffsets, descending);
