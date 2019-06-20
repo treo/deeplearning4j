@@ -50,10 +50,9 @@ namespace helpers {
     }
 
     template <typename T>
-    void nthElementFunctor_(nd4j::LaunchContext * context, NDArray* input, NDArray* nVal, NDArray* output, bool reverse) {
+    void nthElementFunctor_(nd4j::LaunchContext * context, NDArray* input, Nd4jLong n, NDArray* output, bool reverse) {
 
-        NDArray::prepareSpecialUse({output}, {input, nVal});
-        Nd4jLong n = nVal->e<Nd4jLong>(0);
+        NDArray::prepareSpecialUse({output}, {input});
         NDArray sortedVals(*input);
         Nd4jPointer params[2];
         params[0] = nullptr;
@@ -81,13 +80,13 @@ namespace helpers {
             fillUpElementKernel<T><<<32, 64, 1024, *stream>>>(output->specialBuffer(), output->specialShapeInfo(), sortedVals.specialBuffer(), sortedVals.specialShapeInfo(), pTadShape, pTadOffsets, n);
             //manager.synchronize();
         }
-        NDArray::registerSpecialUse({output}, {input, nVal});
+        NDArray::registerSpecialUse({output}, {input});
     }
-    void nthElementFunctor(nd4j::LaunchContext * context, NDArray* input, NDArray* n, NDArray* output, bool reverse) {
+    void nthElementFunctor(nd4j::LaunchContext * context, NDArray* input, Nd4jLong n, NDArray* output, bool reverse) {
     BUILD_SINGLE_SELECTOR(input->dataType(), nthElementFunctor_, (context, input, n, output, reverse), LIBND4J_TYPES);
 
     }
-    BUILD_SINGLE_TEMPLATE(template void nthElementFunctor_, (nd4j::LaunchContext * context, NDArray* input, NDArray* n, NDArray* output, bool reverse), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void nthElementFunctor_, (nd4j::LaunchContext * context, NDArray* input, Nd4jLong n, NDArray* output, bool reverse), LIBND4J_TYPES);
     
 }
 }

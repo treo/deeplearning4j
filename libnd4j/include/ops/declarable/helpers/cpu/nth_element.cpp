@@ -28,8 +28,8 @@ namespace ops {
 namespace helpers {
 
     template <typename T>
-    void nthElementFunctor_(NDArray* input, NDArray* nVal, NDArray* output, bool reverse) {
-        Nd4jLong n = nVal->e<Nd4jLong>(0);
+    void nthElementFunctor_(NDArray* input, Nd4jLong n, NDArray* output, bool reverse) {
+
         NDArray sortedVals(*input);
         if (input->isVector()) {
             //std::vector<float> data(input->lengthOf());
@@ -62,7 +62,7 @@ namespace helpers {
         }
     }
 
-    void nthElementFunctor(nd4j::LaunchContext  *launchContext, NDArray* input, NDArray* n, NDArray* output, bool reverse) {
+    void nthElementFunctor(nd4j::LaunchContext  *launchContext, NDArray* input, Nd4jLong n, NDArray* output, bool reverse) {
     BUILD_SINGLE_SELECTOR(input->dataType(), nthElementFunctor_, (input, n, output, reverse), LIBND4J_TYPES);
 
     }
