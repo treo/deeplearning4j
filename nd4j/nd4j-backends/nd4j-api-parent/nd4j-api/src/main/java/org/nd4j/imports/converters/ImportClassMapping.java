@@ -327,6 +327,7 @@ public class ImportClassMapping {
             org.nd4j.linalg.api.ops.impl.transforms.Angle.class,
             org.nd4j.linalg.api.ops.impl.transforms.Assert.class,
             org.nd4j.linalg.api.ops.impl.transforms.BinCount.class,
+            org.nd4j.linalg.api.ops.impl.transforms.CheckNumerics.class,
             org.nd4j.linalg.api.ops.impl.transforms.Cholesky.class,
             org.nd4j.linalg.api.ops.impl.transforms.Constant.class,
             org.nd4j.linalg.api.ops.impl.transforms.HistogramFixedWidth.class,

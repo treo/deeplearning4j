@@ -17,6 +17,8 @@
 package org.nd4j.linalg.api.ops.impl.transforms;
 
 import org.nd4j.autodiff.samediff.SDVariable;
+import org.nd4j.autodiff.samediff.SameDiff;
+import org.nd4j.base.Preconditions;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ops.DynamicCustomOp;
 
@@ -28,6 +30,13 @@ import java.util.List;
  * @author raver119@gmail.com
  */
 public class CheckNumerics extends DynamicCustomOp {
+
+    public CheckNumerics(SameDiff sd, SDVariable input, SDVariable message){
+        super(sd, new SDVariable[]{input, message});
+    }
+
+    public CheckNumerics(){ }
+
     @Override
     public String opName() {
         return "check_numerics";
@@ -50,6 +59,8 @@ public class CheckNumerics extends DynamicCustomOp {
 
     @Override
     public List<DataType> calculateOutputDataTypes(List<DataType> inputDataTypes){
+        Preconditions.checkState(inputDataTypes != null && inputDataTypes.size() == 2, "Expected 2 datatype in, got %s", inputDataTypes);
+        Preconditions.checkState(inputDataTypes.get(0).isFPType(), "Input datatype must be a floating point type, got %s", inputDataTypes);
         return Collections.singletonList(inputDataTypes.get(0));
     }
 }
