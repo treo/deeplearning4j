@@ -51,34 +51,37 @@ namespace helpers {
 
     template <typename T>
     void nthElementFunctor_(nd4j::LaunchContext * context, NDArray* input, NDArray* nVal, NDArray* output, bool reverse) {
-            Nd4jLong n = nVal->e<Nd4jLong>(0);
-            NDArray sortedVals(*input);
-            Nd4jPointer params[2];
-            params[0] = context->getCudaStream();
-            params[1] = *context->getCudaStream();
 
-            if (input->isVector()) {
-                NativeOps ops;
-                ops.sort(params, nullptr, sortedVals.shapeInfo(), sortedVals.specialBuffer(), sortedVals.specialShapeInfo(), reverse);
+        NDArray::prepareSpecialUse({output}, {input, nVal});
+        Nd4jLong n = nVal->e<Nd4jLong>(0);
+        NDArray sortedVals(*input);
+        Nd4jPointer params[2];
+        params[0] = nullptr;
+        params[1] = context->getCudaStream();
 
-                cudaMemcpy(reinterpret_cast<T*>(output->specialBuffer()), reinterpret_cast<T*>(sortedVals.specialBuffer()) + n, sizeof(T), cudaMemcpyDeviceToDevice);
-            }
-            else { // rank greater than 1
-                std::vector<int> lastDims({input->rankOf() - 1});// = ShapeUtils::evalDimsToExclude(input->rankOf(), {input->rankOf() - 1});
+        if (input->isVector()) {
+            NativeOps ops;
+            ops.sort(params, nullptr, sortedVals.shapeInfo(), sortedVals.specialBuffer(), sortedVals.specialShapeInfo(), reverse);
 
-                auto packX = nd4j::ConstantTadHelper::getInstance()->tadForDimensions(sortedVals.getShapeInfo(), lastDims);
-
-                PointersManager manager(context, "helpers::nth_element");
-                auto pTadShape = packX.specialShapeInfo();
-                auto pTadOffsets = packX.specialOffsets();
-                auto pLastDimData = (int*) manager.replicatePointer(lastDims.data(), lastDims.size() * sizeof(int));
-
-                NativeOps ops;
-                ops.sortTad(params, sortedVals.buffer(), sortedVals.shapeInfo(), sortedVals.specialBuffer(), sortedVals.specialShapeInfo(), pLastDimData, lastDims.size(), pTadShape, pTadOffsets, reverse);
-                auto stream = context->getCudaStream();
-                fillUpElementKernel<T><<<32, 64, 1024, *stream>>>(output->specialBuffer(), output->specialShapeInfo(), sortedVals.specialBuffer(), sortedVals.specialShapeInfo(), pTadShape, pTadOffsets, n);
-                //manager.synchronize();
+            cudaMemcpy(reinterpret_cast<T*>(output->specialBuffer()), reinterpret_cast<T*>(sortedVals.specialBuffer()) + n, sizeof(T), cudaMemcpyDeviceToDevice);
         }
+        else { // rank greater than 1
+            std::vector<int> lastDims({input->rankOf() - 1});// = ShapeUtils::evalDimsToExclude(input->rankOf(), {input->rankOf() - 1});
+
+            auto packX = nd4j::ConstantTadHelper::getInstance()->tadForDimensions(sortedVals.getShapeInfo(), lastDims);
+
+            //PointersManager manager(context, "helpers::nth_element");
+            auto pTadShape = packX.specialShapeInfo();
+            auto pTadOffsets = packX.specialOffsets();
+            //auto pLastDimData = (int*) manager.replicatePointer(lastDims.data(), lastDims.size() * sizeof(int));
+
+            NativeOps ops;
+            ops.sortTad(params, sortedVals.buffer(), sortedVals.shapeInfo(), sortedVals.specialBuffer(), sortedVals.specialShapeInfo(), lastDims.data(), lastDims.size(), pTadShape, pTadOffsets, reverse);
+            auto stream = context->getCudaStream();
+            fillUpElementKernel<T><<<32, 64, 1024, *stream>>>(output->specialBuffer(), output->specialShapeInfo(), sortedVals.specialBuffer(), sortedVals.specialShapeInfo(), pTadShape, pTadOffsets, n);
+            //manager.synchronize();
+        }
+        NDArray::registerSpecialUse({output}, {input, nVal});
     }
     void nthElementFunctor(nd4j::LaunchContext * context, NDArray* input, NDArray* n, NDArray* output, bool reverse) {
     BUILD_SINGLE_SELECTOR(input->dataType(), nthElementFunctor_, (context, input, n, output, reverse), LIBND4J_TYPES);
