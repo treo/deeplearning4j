@@ -56,7 +56,7 @@ namespace helpers {
         NDArray::prepareSpecialUse({output}, {input});
         NDArray sortedVals(*input);
         Nd4jPointer params[2];
-        params[0] = nullptr;
+        params[0] = context;
         params[1] = context->getCudaStream();
 
         if (input->isVector()) {
@@ -66,24 +66,23 @@ namespace helpers {
             cudaMemcpy(reinterpret_cast<T*>(output->specialBuffer()), reinterpret_cast<T*>(sortedVals.specialBuffer()) + n, sizeof(T), cudaMemcpyDeviceToDevice);
         }
         else { // rank greater than 1
-            std::vector<int> lastDims({input->rankOf() - 1}); // = ShapeUtils::evalDimsToExclude(input->rankOf(), {input->rankOf() - 1});
+            std::vector<int> lastDims({input->rankOf() - 1});// = ShapeUtils::evalDimsToExclude(input->rankOf(), {input->rankOf() - 1});
 
             auto packX = nd4j::ConstantTadHelper::getInstance()->tadForDimensions(sortedVals.getShapeInfo(), lastDims);
 
-            //PointersManager manager(context, "helpers::nth_element");
             auto pTadShape = packX.specialShapeInfo();
+            auto pTadShapeH = packX.primaryShapeInfo();
             auto pTadOffsets = packX.specialOffsets();
-            //auto pLastDimData = (int*) manager.replicatePointer(lastDims.data(), lastDims.size() * sizeof(int));
-
+//            auto pLastDimData = (int*) manager.replicatePointer(lastDims.data(), lastDims.size() * sizeof(int));
             NativeOps ops;
             ops.sortTad(params, sortedVals.buffer(), sortedVals.shapeInfo(), sortedVals.specialBuffer(), sortedVals.specialShapeInfo(), lastDims.data(), lastDims.size(), pTadShape, pTadOffsets, reverse);
+//            manager.synchronize();
             sortedVals.tickWriteDevice();
             sortedVals.syncToHost();
             sortedVals.printIndexedBuffer("Hello");
             sortedVals.printBuffer("Hello line");
             auto stream = context->getCudaStream();
             fillUpElementKernel<T><<<32, 64, 1024, *stream>>>(output->specialBuffer(), output->specialShapeInfo(), sortedVals.specialBuffer(), sortedVals.specialShapeInfo(), pTadShape, pTadOffsets, n);
-            //manager.synchronize();
         }
         NDArray::registerSpecialUse({output}, {input});
     }
