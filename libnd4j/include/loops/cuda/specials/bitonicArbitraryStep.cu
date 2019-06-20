@@ -85,8 +85,8 @@ void bitonicArbitraryStepKernel(void *vx, Nd4jLong *xShapeInfo, int window, int 
             int it = (reverse) ? i + j + half : i + window - j - 1;
             int ij = i+j;
             if (it < length && ij < length ) {
-                int posIT = getDevicePosition(xShapeInfo,it, xLength);
-                int posIJ = getDevicePosition(xShapeInfo, ij, xLength);
+                int posIT = shape::getIndexOffset(it, xShapeInfo, xLength);
+                int posIJ = shape::getIndexOffset(ij, xShapeInfo, xLength);
 
                 shmem[threadIdx.x] = x[posIJ];
                 shmem[threadIdx.x + blockDim.x] = x[posIT];

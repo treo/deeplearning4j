@@ -76,24 +76,6 @@ __host__ void printCudaHost(void* pointer, const int len, cudaStream_t& stream) 
 }
 
 
-////////////////////////////////////////////////////////////////////////
-__device__ inline int getDevicePosition(Nd4jLong *xShapeInfo, int index, Nd4jLong length) {
-    
-    int xEWS = shape::elementWiseStride(xShapeInfo);
-    char order = shape::order(xShapeInfo);
-
-    if (xEWS == 1 && order == 'c') {
-        return index;
-    }
-    else if (xEWS > 1 && order == 'c') {
-        return index * xEWS;
-    } 
-    else {                
-        return shape::getIndexOffset(index, xShapeInfo, length);
-    }
-}
-
-
 #endif
 
 #endif //PROJECT_SPECIALS_CUDA_H

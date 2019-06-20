@@ -44,8 +44,8 @@ __device__ void bitonicSortStepKernel(void *vx, Nd4jLong *xShapeInfo, int j, int
 
     /* The threads with the lowest ids sort the array. */
     if ((ixj)>i) {
-        int posI = getDevicePosition(xShapeInfo, i, xLength);
-        int posIXJ = getDevicePosition(xShapeInfo, ixj, xLength);
+        int posI = shape::getIndexOffset(i, xShapeInfo, xLength);
+        int posIXJ = shape::getIndexOffset(ixj, xShapeInfo, xLength);
 
         if ((i&k)==0) {
             /* Sort ascending */
