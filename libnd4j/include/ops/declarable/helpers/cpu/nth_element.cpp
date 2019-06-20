@@ -51,7 +51,6 @@ namespace helpers {
             SpecialMethods<T>::sortTadGeneric(sortedVals.buffer(), sortedVals.shapeInfo(), lastDims.data(), lastDims.size(), pack.primaryShapeInfo(), pack.primaryOffsets(), reverse);
 
             std::unique_ptr<ResultSet> rows(sortedVals.allTensorsAlongDimension(lastDims));
-
             Nd4jLong oL = output->lengthOf();
 
             PRAGMA_OMP_PARALLEL_FOR
@@ -66,7 +65,7 @@ namespace helpers {
     BUILD_SINGLE_SELECTOR(input->dataType(), nthElementFunctor_, (input, n, output, reverse), LIBND4J_TYPES);
 
     }
-    BUILD_SINGLE_TEMPLATE(template void nthElementFunctor_, (NDArray* input, NDArray* n, NDArray* output, bool reverse), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void nthElementFunctor_, (NDArray* input, Nd4jLong n, NDArray* output, bool reverse), LIBND4J_TYPES);
     
 }
 }

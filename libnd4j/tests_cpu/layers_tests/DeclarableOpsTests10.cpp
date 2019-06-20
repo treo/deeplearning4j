@@ -943,11 +943,11 @@ TEST_F(DeclarableOpsTests10, histogram_fixed_width_test5) {
 ///////////////////////////////////////////////////////////////////
 TEST_F(DeclarableOpsTests10, NTH_Element_Test_1) {
 
-    NDArray input = NDArrayFactory::create<float>('c', {12});
+    NDArray input = NDArrayFactory::create<float>('c', {12}, {10, 1, 9, 8, 11, 7, 6, 5, 12, 3, 2, 4});
     NDArray n = NDArrayFactory::create<float>(4.f);
     NDArray exp = NDArrayFactory::create<float>(5.f);
 
-    input.linspace(1.f);
+    //input.linspace(1.f);
 
     nd4j::ops::nth_element op;
     auto results = op.execute({&input, &n}, {}, {});
@@ -965,11 +965,11 @@ TEST_F(DeclarableOpsTests10, NTH_Element_Test_1) {
 ///////////////////////////////////////////////////////////////////
 TEST_F(DeclarableOpsTests10, NTH_Element_Test_2) {
 
-    NDArray input = NDArrayFactory::create<float>('c', {3,4});
+    NDArray input = NDArrayFactory::create<float>('c', {3, 4}, {10, 11, 9, 12, 8, 7, 6, 5, 1, 3, 2, 4});
     NDArray n = NDArrayFactory::create<int>(3);
-    NDArray exp = NDArrayFactory::create<float>({4.f, 8.f, 12.f});
+    NDArray exp = NDArrayFactory::create<float>({12.f, 8.f, 4.f});
 
-    input.linspace(1.f);
+//    input.linspace(1.f);
 
     nd4j::ops::nth_element op;
     auto results = op.execute({&input, &n}, {}, {});
@@ -989,11 +989,11 @@ TEST_F(DeclarableOpsTests10, NTH_Element_Test_2) {
 ///////////////////////////////////////////////////////////////////
 TEST_F(DeclarableOpsTests10, NTH_Element_Test_3) {
 
-    NDArray input = NDArrayFactory::create<float>('c', {3,4});
+    NDArray input = NDArrayFactory::create<float>('c', {3,4}, {10, 1, 9, 8, 11, 7, 6, 5, 12, 3, 2, 4});
     NDArray n = NDArrayFactory::create<int>(3);
-    NDArray exp = NDArrayFactory::create<float>({1.f, 5.f, 9.f});
+    NDArray exp = NDArrayFactory::create<float>({1.f, 5.f, 2.f});
 
-    input.linspace(1.f);
+    //input.linspace(1.f);
 
     nd4j::ops::nth_element op;
     auto results = op.execute({&input, &n}, {}, {1}); // with reverse = true
@@ -1012,11 +1012,11 @@ TEST_F(DeclarableOpsTests10, NTH_Element_Test_3) {
 ///////////////////////////////////////////////////////////////////
 TEST_F(DeclarableOpsTests10, NTH_Element_Test_4) {
 
-    NDArray input = NDArrayFactory::create<float>('c', {2, 2, 3});
+    NDArray input = NDArrayFactory::create<float>('c', {2, 2, 3}, {10, 1, 9, 8, 11, 7, 6, 5, 12, 3, 2, 4});
     NDArray n = NDArrayFactory::create<int>(2);
-    NDArray exp = NDArrayFactory::create<float>('c', {2,2}, {3.f, 6.f, 9.f, 12.f});
+    NDArray exp = NDArrayFactory::create<float>('c', {2,2}, {10.f, 11.f, 12.f, 4.f});
 
-    input.linspace(1.f);
+    //input.linspace(1.f);
 
     nd4j::ops::nth_element op;
     auto results = op.execute({&input, &n}, {}, {});
@@ -1054,11 +1054,11 @@ TEST_F(DeclarableOpsTests10, NTH_Element_Test_04) {
 ///////////////////////////////////////////////////////////////////
 TEST_F(DeclarableOpsTests10, NTH_Element_Test_5) {
 
-    NDArray input = NDArrayFactory::create<float>('c', {2, 2, 3});
+    NDArray input = NDArrayFactory::create<float>('c', {2, 2, 3}, {10, 1, 9, 8, 11, 7, 6, 5, 12, 3, 2, 4});
     NDArray n = NDArrayFactory::create<int>(2);
-    NDArray exp = NDArrayFactory::create<float>('c', {2,2}, {1.f, 4.f, 7.f, 10.f});
+    NDArray exp = NDArrayFactory::create<float>('c', {2,2}, {1.f, 7.f, 5.f, 2.f});
 
-    input.linspace(1.f);
+//    input.linspace(1.f);
 
     nd4j::ops::nth_element op;
     auto results = op.execute({&input, &n}, {}, {1});
@@ -1076,14 +1076,34 @@ TEST_F(DeclarableOpsTests10, NTH_Element_Test_5) {
 ///////////////////////////////////////////////////////////////////
 TEST_F(DeclarableOpsTests10, NTH_Element_Test_6) {
 
-    NDArray input = NDArrayFactory::create<float>('c', {12});
+    NDArray input = NDArrayFactory::create<float>('c', {12}, {10, 1, 9, 8, 11, 7, 6, 5, 12, 3, 2, 4});
     NDArray n = NDArrayFactory::create<int>(0);
     NDArray exp = NDArrayFactory::create(1.f);//NDArrayFactory::create<float>('c', {2,2}, {1.f, 4.f, 7.f, 10.f});
 
-    input.linspace(1.f);
+//    input.linspace(1.f);
 
     nd4j::ops::nth_element op;
     auto results = op.execute({&input, &n}, {}, {0});
+
+    ASSERT_EQ(ND4J_STATUS_OK, results->status());
+
+    NDArray* output = results->at(0);
+    ASSERT_TRUE(exp.isSameShape(output));
+    ASSERT_TRUE(exp.equalsTo(output));
+
+    delete results;
+}
+///////////////////////////////////////////////////////////////////
+TEST_F(DeclarableOpsTests10, NTH_Element_Test_06) {
+
+    NDArray input = NDArrayFactory::create<float>('c', {12}, {10, 1, 9, 8, 11, 7, 6, 5, 12, 3, 2, 4});
+    NDArray n = NDArrayFactory::create<int>(4);
+    NDArray exp = NDArrayFactory::create(8.f);//NDArrayFactory::create<float>('c', {2,2}, {1.f, 4.f, 7.f, 10.f});
+
+//    input.linspace(1.f);
+
+    nd4j::ops::nth_element op;
+    auto results = op.execute({&input, &n}, {}, {1});
 
     ASSERT_EQ(ND4J_STATUS_OK, results->status());
 

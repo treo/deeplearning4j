@@ -20,6 +20,7 @@
 
 #include <ops/declarable/helpers/nth_element.h>
 #include <TAD.h>
+#include <ShapeUtils.h>
 #include <PointersManager.h>
 #include <NativeOps.h>
 #include <helpers/ConstantTadHelper.h>
@@ -65,7 +66,7 @@ namespace helpers {
             cudaMemcpy(reinterpret_cast<T*>(output->specialBuffer()), reinterpret_cast<T*>(sortedVals.specialBuffer()) + n, sizeof(T), cudaMemcpyDeviceToDevice);
         }
         else { // rank greater than 1
-            std::vector<int> lastDims({input->rankOf() - 1});// = ShapeUtils::evalDimsToExclude(input->rankOf(), {input->rankOf() - 1});
+            std::vector<int> lastDims({input->rankOf() - 1}); // = ShapeUtils::evalDimsToExclude(input->rankOf(), {input->rankOf() - 1});
 
             auto packX = nd4j::ConstantTadHelper::getInstance()->tadForDimensions(sortedVals.getShapeInfo(), lastDims);
 
@@ -76,6 +77,10 @@ namespace helpers {
 
             NativeOps ops;
             ops.sortTad(params, sortedVals.buffer(), sortedVals.shapeInfo(), sortedVals.specialBuffer(), sortedVals.specialShapeInfo(), lastDims.data(), lastDims.size(), pTadShape, pTadOffsets, reverse);
+            sortedVals.tickWriteDevice();
+            sortedVals.syncToHost();
+            sortedVals.printIndexedBuffer("Hello");
+            sortedVals.printBuffer("Hello line");
             auto stream = context->getCudaStream();
             fillUpElementKernel<T><<<32, 64, 1024, *stream>>>(output->specialBuffer(), output->specialShapeInfo(), sortedVals.specialBuffer(), sortedVals.specialShapeInfo(), pTadShape, pTadOffsets, n);
             //manager.synchronize();
