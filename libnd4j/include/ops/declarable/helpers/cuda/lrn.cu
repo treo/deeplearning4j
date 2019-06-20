@@ -138,7 +138,7 @@ namespace helpers {
         if (tadLength > 1024 || tadLength < 1)
             throw std::runtime_error("LRN: tadLength > 1024 isn't implemented yet");
 
-        lrnBPKernel<X, Z><<<numBlocks, numThreads, numThreads * sizeof(X) + numThreads * sizeof(Z) + numThreads * sizeof(Z) + 1024, *block.launchContext()->getCudaStream()>>>(input.getSpecialBuffer(), packX.platformShapeInfo(), packX.platformOffsets(), gradI.specialBuffer(), packZ.platformShapeInfo(), packZ.platformOffsets(), packX.numberOfTads(),  tadLength, depth, bias, alpha, beta);
+        lrnBPKernel<X, Z><<<numBlocks, numThreads, numThreads * sizeof(X) + numThreads * sizeof(Z) + 1024, *block.launchContext()->getCudaStream()>>>(input.getSpecialBuffer(), packX.platformShapeInfo(), packX.platformOffsets(), gradI.specialBuffer(), packZ.platformShapeInfo(), packZ.platformOffsets(), packX.numberOfTads(),  tadLength, depth, bias, alpha, beta);
 
         gradI.tickWriteDevice();
         gradI *= gradO;
