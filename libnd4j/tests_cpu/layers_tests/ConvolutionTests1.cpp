@@ -2023,6 +2023,7 @@ TEST_F(ConvolutionTests1, vol2col_test1) {
 
     graph::Context context(1);
     nd4j::ops::ConvolutionUtils::vol2col(context, volume, columns, sD, sH, sW, pD, pH, pW, dD, dH, dW);
+    // columns.printCurrentBuffer<float>(false, "", 1);
 
     ASSERT_TRUE(columns.equalsTo(columnsExpected));
 }

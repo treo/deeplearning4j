@@ -182,8 +182,8 @@ void ConvolutionUtils::getMKLDNNMemoryDescPool3d(
 
             if (volume.ordering() == 'c' &&  columns.ordering() == 'c' && shape::strideDescendingCAscendingF(volume.getShapeInfo()) && shape::strideDescendingCAscendingF(columns.getShapeInfo()))
 
-                    PRAGMA_OMP_PARALLEL_FOR_ARGS(private(col, vol, volDep, volRow, volCol) collapse(2))
-                for (int b = 0; b < bS; b++) {
+                PRAGMA_OMP_PARALLEL_FOR_ARGS(private(col, vol, volDep, volRow, volCol) collapse(2))
+                for (int b = 0; b < bS; ++b) {
                     for (int c = 0; c < iC; ++c) {
                         for (int kDep = 0; kDep < kD; ++kDep) {
                             for (int kRow = 0; kRow < kH; ++kRow) {
@@ -197,12 +197,13 @@ void ConvolutionUtils::getMKLDNNMemoryDescPool3d(
                                                 volCol = (-pW + kCol * dW) + colW*sW;
 
                                                 col = colBuff + b*colStride0 + c*colStride1 + kDep*colStride2 + kRow*colStride3 + kCol*colStride4 + colD*colStride5 + colH*colStride6 + colW*colStride7;
-                                                vol = volBuff + b*volStride0 + c*volStride1 + volDep*volStride2 + volRow*volStride3 + volCol*volStride4;
 
                                                 if (static_cast<unsigned>(volDep) >= static_cast<unsigned>(iD) || static_cast<unsigned>(volRow) >= static_cast<unsigned>(iH) || static_cast<unsigned>(volCol) >= static_cast<unsigned>(iW))
                                                     *col = static_cast<T>(0.);
-                                                else
+                                                else {
+                                                    vol = volBuff + b*volStride0 + c*volStride1 + volDep*volStride2 + volRow*volStride3 + volCol*volStride4;
                                                     *col = *vol;
+                                                }
                                             }
                                         }
                                     }
@@ -214,7 +215,7 @@ void ConvolutionUtils::getMKLDNNMemoryDescPool3d(
 
             else
 
-                    PRAGMA_OMP_PARALLEL_FOR_ARGS(private(vol, col, volDep, volRow, volCol))
+                PRAGMA_OMP_PARALLEL_FOR_ARGS(private(vol, col, volDep, volRow, volCol))
                 for (int b = 0; b < bS; b++) {
                     for (int colD = 0; colD < oD; ++colD) {
                         for (int colH = 0; colH < oH; ++colH) {
@@ -229,12 +230,13 @@ void ConvolutionUtils::getMKLDNNMemoryDescPool3d(
                                                 volCol = (-pW + kCol * dW) + colW*sW;
 
                                                 col = colBuff + b*colStride0 + c*colStride1 + kDep*colStride2 + kRow*colStride3 + kCol*colStride4 + colD*colStride5 + colH*colStride6 + colW*colStride7;
-                                                vol = volBuff + b*volStride0 + c*volStride1 + volDep*volStride2 + volRow*volStride3 + volCol*volStride4;
 
                                                 if (static_cast<unsigned>(volDep) >= static_cast<unsigned>(iD) || static_cast<unsigned>(volRow) >= static_cast<unsigned>(iH) || static_cast<unsigned>(volCol) >= static_cast<unsigned>(iW))
                                                     *col = static_cast<T>(0.);
-                                                else
+                                                else {
+                                                    vol = volBuff + b*volStride0 + c*volStride1 + volDep*volStride2 + volRow*volStride3 + volCol*volStride4;
                                                     *col = *vol;
+                                                }
                                             }
                                         }
                                     }
@@ -286,7 +288,7 @@ void ConvolutionUtils::getMKLDNNMemoryDescPool3d(
 
             if (volume.ordering() == 'c' &&  columns.ordering() == 'c' && shape::strideDescendingCAscendingF(volume.getShapeInfo()) && shape::strideDescendingCAscendingF(columns.getShapeInfo()))
 
-                    PRAGMA_OMP_PARALLEL_FOR_ARGS(private(col, vol, volDep, volRow, volCol) collapse(2))
+                PRAGMA_OMP_PARALLEL_FOR_ARGS(private(col, vol, volDep, volRow, volCol) collapse(2))
                 for (int b = 0; b < bS; b++) {
                     for (int c = 0; c < iC; ++c) {
                         for (int kDep = 0; kDep < kD; ++kDep) {
@@ -300,11 +302,11 @@ void ConvolutionUtils::getMKLDNNMemoryDescPool3d(
                                                 volRow = (-pH + kRow * dH) + colH*sH;
                                                 volCol = (-pW + kCol * dW) + colW*sW;
 
-                                                col = colBuff + b*colStride0 + c*colStride1 + kDep*colStride2 + kRow*colStride3 + kCol*colStride4 + colD*colStride5 + colH*colStride6 + colW*colStride7;
-                                                vol = volBuff + b*volStride0 + c*volStride1 + volDep*volStride2 + volRow*volStride3 + volCol*volStride4;
-
-                                                if (static_cast<unsigned>(volDep) < static_cast<unsigned>(iD) && static_cast<unsigned>(volRow) < static_cast<unsigned>(iH) && static_cast<unsigned>(volCol) < static_cast<unsigned>(iW))
+                                                if (static_cast<unsigned>(volDep) < static_cast<unsigned>(iD) && static_cast<unsigned>(volRow) < static_cast<unsigned>(iH) && static_cast<unsigned>(volCol) < static_cast<unsigned>(iW)) {
+                                                    col = colBuff + b*colStride0 + c*colStride1 + kDep*colStride2 + kRow*colStride3 + kCol*colStride4 + colD*colStride5 + colH*colStride6 + colW*colStride7;
+                                                    vol = volBuff + b*volStride0 + c*volStride1 + volDep*volStride2 + volRow*volStride3 + volCol*volStride4;
                                                     *vol += *col;
+                                                }
                                             }
                                         }
                                     }
@@ -316,7 +318,7 @@ void ConvolutionUtils::getMKLDNNMemoryDescPool3d(
 
             else
 
-                    PRAGMA_OMP_PARALLEL_FOR_ARGS(private(vol, col, volDep, volRow, volCol))
+                PRAGMA_OMP_PARALLEL_FOR_ARGS(private(vol, col, volDep, volRow, volCol))
                 for (int b = 0; b < bS; b++) {
                     for (int colD = 0; colD < oD; ++colD) {
                         for (int colH = 0; colH < oH; ++colH) {
@@ -330,11 +332,11 @@ void ConvolutionUtils::getMKLDNNMemoryDescPool3d(
                                                 volRow = (-pH + kRow * dH) + colH*sH;
                                                 volCol = (-pW + kCol * dW) + colW*sW;
 
-                                                col = colBuff + b*colStride0 + c*colStride1 + kDep*colStride2 + kRow*colStride3 + kCol*colStride4 + colD*colStride5 + colH*colStride6 + colW*colStride7;
-                                                vol = volBuff + b*volStride0 + c*volStride1 + volDep*volStride2 + volRow*volStride3 + volCol*volStride4;
-
-                                                if (static_cast<unsigned>(volDep) < static_cast<unsigned>(iD) && static_cast<unsigned>(volRow) < static_cast<unsigned>(iH) && static_cast<unsigned>(volCol) < static_cast<unsigned>(iW))
+                                                if (static_cast<unsigned>(volDep) < static_cast<unsigned>(iD) && static_cast<unsigned>(volRow) < static_cast<unsigned>(iH) && static_cast<unsigned>(volCol) < static_cast<unsigned>(iW)) {
+                                                    col = colBuff + b*colStride0 + c*colStride1 + kDep*colStride2 + kRow*colStride3 + kCol*colStride4 + colD*colStride5 + colH*colStride6 + colW*colStride7;
+                                                    vol = volBuff + b*volStride0 + c*volStride1 + volDep*volStride2 + volRow*volStride3 + volCol*volStride4;
                                                     *vol += *col;
+                                                }
                                             }
                                         }
                                     }
