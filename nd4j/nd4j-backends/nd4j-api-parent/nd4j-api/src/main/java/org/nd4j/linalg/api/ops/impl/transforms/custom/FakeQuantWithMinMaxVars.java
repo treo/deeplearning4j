@@ -20,7 +20,7 @@ public class FakeQuantWithMinMaxVars extends DynamicCustomOp {
     protected int numBits;
 
     public FakeQuantWithMinMaxVars(SameDiff sd, SDVariable input, SDVariable min, SDVariable max, boolean narrowRange, int numBits){
-        super(sd, new SDVariable[]{input, min, max})
+        super(sd, new SDVariable[]{input, min, max});
         this.narrowRange = narrowRange;
         this.numBits = numBits;
         addArgs();
@@ -28,8 +28,7 @@ public class FakeQuantWithMinMaxVars extends DynamicCustomOp {
 
     protected void addArgs(){
         iArguments.clear();
-        iArguments.add(numBits);
-        iArguments.add(narrowRange ? 1 : 0);
+        addIArgument(numBits, narrowRange ? 1 : 0);
     }
 
     @Override
@@ -55,11 +54,11 @@ public class FakeQuantWithMinMaxVars extends DynamicCustomOp {
     @Override
     public List<DataType> calculateOutputDataTypes(List<DataType> inputDataTypes){
         Preconditions.checkState(inputDataTypes != null && inputDataTypes.size() == 3, "Expected exactly 3 inputs, got %s", inputDataTypes);
-        return Collections.emptyList(DataType.FLOAT);
+        return Collections.singletonList(DataType.FLOAT);
     }
 
     @Override
-    public List<SDVariable> doLiff(List<SDVariable> gradients){
+    public List<SDVariable> doDiff(List<SDVariable> gradients){
         return Arrays.asList(sameDiff.zerosLike(arg(0)), sameDiff.zerosLike(arg(1)), sameDiff.zerosLike(arg(2)));
     }
 }
