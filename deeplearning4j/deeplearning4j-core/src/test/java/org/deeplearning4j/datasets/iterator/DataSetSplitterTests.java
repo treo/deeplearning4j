@@ -20,7 +20,10 @@ import lombok.val;
 import org.deeplearning4j.BaseDL4JTest;
 import org.deeplearning4j.datasets.iterator.tools.DataSetGenerator;
 import org.junit.Test;
+import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.exception.ND4JIllegalStateException;
+
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
@@ -140,6 +143,35 @@ public class DataSetSplitterTests extends BaseDL4JTest {
             // shifting underlying iterator by one
             train.hasNext();
             back.shift();
+        }
+
+        assertEquals(1000 * numEpochs, global);
+    }
+
+    @Test
+    public void testSplitter_4() {
+        val back = new DataSetGenerator(1000, new int[]{32, 100}, new int[]{32, 5});
+
+        val splitter = new DataSetIteratorSplitter(back, 1000, new double[]{0.5, 0.3, 0.2});
+
+        List<DataSetIterator> iteratorList = splitter.getIterators();
+        val numEpochs = 10;
+
+        int global = 0;
+        // emulating epochs here
+        for (int e = 0; e < numEpochs; e++) {
+            int cnt = 0;
+            for (val partIterator : iteratorList) {
+                while (partIterator.hasNext()) {
+                    val data = partIterator.next().getFeatures();
+
+                    assertEquals("Train failed on iteration " + cnt + "; epoch: " + e, (float) cnt++, data.getFloat(0), 1e-5);
+                    //gcntTrain++;
+                    global++;
+                }
+
+                partIterator.reset();
+            }
         }
 
         assertEquals(1000 * numEpochs, global);
