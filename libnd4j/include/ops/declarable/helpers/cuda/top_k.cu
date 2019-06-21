@@ -126,7 +126,7 @@ int inTopKFunctor(nd4j::LaunchContext * context, const NDArray* predictions, con
 
 
     template <typename X, typename Y>
-    static _CUDA_G void indicesAlongDimension(void *vx, Nd4jLong *xTadShapeInfo, Nd4jLong *xTadOffsets, void *vi, Nd4jLong *iTadShapeInfo, Nd4jLong *iTadOffsets, void *vz, Nd4jLong *zTadShapeInfo, Nd4jLong *zTadOffsets, Nd4jLong tadLength, int numTads, int k, int scanWidth) {
+    static _CUDA_G void indicesAlongDimension(void *vx, Nd4jLong *xTadShapeInfo, Nd4jLong *xTadOffsets, void *vi, Nd4jLong *iTadShapeInfo, Nd4jLong *iTadOffsets, void *vz, Nd4jLong *zTadShapeInfo, Nd4jLong *zTadOffsets, Nd4jLong tadLength, int numTads, int k, int scanWidth, bool needSort) {
         extern __shared__ char _shmem[];
 
         X* tempValues = reinterpret_cast<X*>(_shmem) + threadIdx.x * scanWidth;
@@ -185,6 +185,57 @@ int inTopKFunctor(nd4j::LaunchContext * context, const NDArray* predictions, con
                 }
                 __syncthreads();
             }
+
+            __syncthreads();
+            if (!needSort) {
+                // if we don't need sort, we need to return values based on their indices (ascending)
+                for (int m = 0; m < k; m++) {
+                    if (m % 2 == 0) {
+                        for (int tid = threadIdx.x; tid < k; tid += blockDim.x) {
+                            auto top = 2 * tid + 1;
+                            if (top < k) {
+                                auto t0 = shape::getIndexOffset(top - 1, iTadShapeInfo, k);
+                                auto t1 = shape::getIndexOffset(top, iTadShapeInfo, k);
+
+                                if (i[t0] > i[t1]) {
+                                    // swap indices first
+                                    Y di0 = i[t0];
+                                    i[t0] = i[t1];
+                                    i[t1] = di0;
+
+                                    //swap values next
+
+                                    X dz0 = z[t0];
+                                    z[t0] = z[t1];
+                                    z[t1] = dz0;
+                                }
+                            }
+                        }
+                    } else {
+                        for (int tid = threadIdx.x; tid < k; tid += blockDim.x) {
+                            auto top = 2 * tid + 2;
+                            if (top < k) {
+                                auto t0 = shape::getIndexOffset(top - 1, iTadShapeInfo, k);
+                                auto t1 = shape::getIndexOffset(top, iTadShapeInfo, k);
+
+                                if (i[t0] > i[t1]) {
+                                    // swap indices first
+                                    Y di0 = i[t0];
+                                    i[t0] = i[t1];
+                                    i[t1] = di0;
+
+                                    //swap values next
+
+                                    X dz0 = z[t0];
+                                    z[t0] = z[t1];
+                                    z[t1] = dz0;
+                                }
+                            }
+                        }
+                    }
+                    __syncthreads();
+                }
+            }
         }
     }
 
@@ -209,13 +260,7 @@ int inTopKFunctor(nd4j::LaunchContext * context, const NDArray* predictions, con
             int numTreads = 256;
             int shMemSize = (numTreads * sizeof(X) * scanWidth) + (numTreads * sizeof(Y) * scanWidth) + 512;
 
-            indicesAlongDimension<X,Y><<<256, numTreads, shMemSize, *context->getCudaStream()>>>(input->getSpecialBuffer(), packX.platformShapeInfo(), packX.platformOffsets(), indices->specialBuffer(), packI.platformShapeInfo(), packI.platformOffsets(), values->specialBuffer(), packZ.platformShapeInfo(), packZ.platformOffsets(), tadLength, packX.numberOfTads(), k, scanWidth);
-        }
-
-
-        // optional sort
-        if (k > 1 && needSort) {
-            //
+            indicesAlongDimension<X,Y><<<256, numTreads, shMemSize, *context->getCudaStream()>>>(input->getSpecialBuffer(), packX.platformShapeInfo(), packX.platformOffsets(), indices->specialBuffer(), packI.platformShapeInfo(), packI.platformOffsets(), values->specialBuffer(), packZ.platformShapeInfo(), packZ.platformOffsets(), tadLength, packX.numberOfTads(), k, scanWidth, needSort);
         }
 
         return Status::OK();
