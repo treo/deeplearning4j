@@ -35,10 +35,12 @@ namespace nd4j {
                 min = INPUT_VARIABLE(1);
                 max = INPUT_VARIABLE(2);
             } else if(block.getTArguments()->size() == 2){
-                NDArray m = NDArrayFactory::create(DataType::FLOAT32, T_ARG(0), block.launchContext());
-                NDArray m2 = NDArrayFactory::create(DataType::FLOAT32, T_ARG(1), block.launchContext());
+                NDArray m = NDArrayFactory::create(x->dataType(), T_ARG(0), block.launchContext());
+                NDArray m2 = NDArrayFactory::create(x->dataType(), T_ARG(1), block.launchContext());
                 min = &m;
                 max = &m2;
+            } else {
+                throw std::runtime_error("No minimum/maximum values provided by either input or TArgs");
             }
             auto output  = OUTPUT_VARIABLE(0);
             int numBits = INT_ARG(0);
