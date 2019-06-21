@@ -107,7 +107,7 @@ public class DataSetIteratorSplitter {
     }
 
     public DataSetIteratorSplitter(@NonNull DataSetIterator baseIterator, long totalBatches, int numArbitrarySets) {
-        double simpleRatio = 1 / numArbitrarySets;
+        double simpleRatio = (double) 1 / numArbitrarySets;
         if (!(simpleRatio > 0.0 && simpleRatio < 1.0))
            throw new ND4JIllegalStateException("Ratio value should be in range of 0.0 > X < 1.0");
 
