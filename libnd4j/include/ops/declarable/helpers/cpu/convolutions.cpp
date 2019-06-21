@@ -298,9 +298,9 @@ void ConvolutionUtils::getMKLDNNMemoryDescPool3d(
                                         for (int colH = 0; colH < oH; ++colH) {
                                             for (int colW = 0; colW < oW; ++colW) {
 
-                                                volDep = (-pD + kDep * dD) + colD*sD;
-                                                volRow = (-pH + kRow * dH) + colH*sH;
-                                                volCol = (-pW + kCol * dW) + colW*sW;
+                                                volDep = -pD + kDep * dD + colD * sD;
+                                                volRow = -pH + kRow * dH + colH * sH;
+                                                volCol = -pW + kCol * dW + colW * sW;
 
                                                 if (static_cast<unsigned>(volDep) < static_cast<unsigned>(iD) && static_cast<unsigned>(volRow) < static_cast<unsigned>(iH) && static_cast<unsigned>(volCol) < static_cast<unsigned>(iW)) {
                                                     col = colBuff + b*colStride0 + c*colStride1 + kDep*colStride2 + kRow*colStride3 + kCol*colStride4 + colD*colStride5 + colH*colStride6 + colW*colStride7;

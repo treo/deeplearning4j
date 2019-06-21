@@ -14,6 +14,10 @@
  * SPDX-License-Identifier: Apache-2.0
  ******************************************************************************/
 
+//
+// @author Yurii Shyrma (iuriish@yahoo.com)
+//
+
 #include <ops/declarable/helpers/convolutions.h>
 #include <ops/declarable/helpers/im2col.h>
 #include <ops/declarable/helpers/col2im.h>
@@ -28,10 +32,10 @@ namespace ops  {
 //////////////////////////////////////////////////////////////////////////
 // vol [bS, iC, iD, iH, iW] is convoluted to col [bS, iC, kD, kH, kW, oD, oH, oW]
 template <typename T>
-static __global__ void vol2colCuda(const void* volume, const Nd4jLong* volShapeInfo, void* column, const Nd4jLong* colShapeInfo,  const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
+static __global__ void vol2colCuda(const void* volume, const Nd4jLong* volShapeInfo, void* columns, const Nd4jLong* colShapeInfo,  const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
 
     const T* vol = reinterpret_cast<const T*>(volume);
-          T* col = reinterpret_cast<T*>(column);
+          T* col = reinterpret_cast<T*>(columns);
 
     __shared__ int colRank, volRank;
     __shared__ Nd4jLong colLen, iD, iH, iW;
@@ -74,9 +78,9 @@ static __global__ void vol2colCuda(const void* volume, const Nd4jLong* volShapeI
 
     const auto colOffset = shape::getOffset(0, colShapeInfo + 1, colShapeInfo + colRank + 1, coords, colRank);
 
-    coords[2] = (-pD + coords[2] * dD) + coords[5] * sD;     // const auto volDep = (-pD + kDep * dD) + colD * sD;
-    coords[3] = (-pH + coords[3] * dH) + coords[6] * sH;     // const auto volRow = (-pH + kRow * dH) + colH * sH;
-    coords[4] = (-pW + coords[4] * dW) + coords[7] * sW;     // const auto volCol = (-pW + kCol * dW) + colW * sW;
+    coords[2] = -pD + coords[2] * dD + coords[5] * sD;     // const auto volDep = (-pD + kDep * dD) + colD * sD;
+    coords[3] = -pH + coords[3] * dH + coords[6] * sH;     // const auto volRow = (-pH + kRow * dH) + colH * sH;
+    coords[4] = -pW + coords[4] * dW + coords[7] * sW;     // const auto volCol = (-pW + kCol * dW) + colW * sW;
 
     if (static_cast<unsigned>(coords[2]) >= static_cast<unsigned>(iD) || static_cast<unsigned>(coords[3]) >= static_cast<unsigned>(iH) || static_cast<unsigned>(coords[4]) >= static_cast<unsigned>(iW))
         col[colOffset] = static_cast<T>(0.);
@@ -88,10 +92,10 @@ static __global__ void vol2colCuda(const void* volume, const Nd4jLong* volShapeI
 template <typename T>
 static void vol2colCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream,
                                 const void* volume, const Nd4jLong* volShapeInfo,
-                                      void* column, const Nd4jLong* colShapeInfo,
+                                      void* columns, const Nd4jLong* colShapeInfo,
                                 const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
 
-    vol2colCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(volume, volShapeInfo, column, colShapeInfo,  sD, sH, sW, pD, pH, pW, dD, dH, dW);
+    vol2colCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(volume, volShapeInfo, columns, colShapeInfo,  sD, sH, sW, pD, pH, pW, dD, dH, dW);
 }
 BUILD_SINGLE_TEMPLATE(template void vol2colCudaLauncher, (const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t* stream, const void *vol, const Nd4jLong *volShapeInfo, void *col, const Nd4jLong *colShapeInfo, const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW), FLOAT_TYPES);
 
@@ -110,6 +114,119 @@ void ConvolutionUtils::vol2col(nd4j::graph::Context& block, const NDArray& vol, 
 
     manager.synchronize();
 }
+
+//////////////////////////////////////////////////////////////////////////
+// columns [bS, iC, kD, kH, kW, oD, oH, oW] to be de-convoluted to volume [bS, iC, iD, iH, iW]
+template <typename T>
+static __global__ void col2volCuda(const void* columns, const Nd4jLong* colShapeInfo, void* volume, const Nd4jLong* volShapeInfo,  const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
+
+    const T* col = reinterpret_cast<const T*>(columns);
+          T* vol = reinterpret_cast<T*>(volume);
+
+    __shared__ int colRank, volRank, kDeff, kHeff, kWeff, oD, oH, oW;
+    __shared__ Nd4jLong *sharedMem, volLen;
+
+    if (threadIdx.x == 0) {
+
+        extern __shared__ unsigned char shmem[];
+        sharedMem = reinterpret_cast<Nd4jLong*>(shmem);
+
+        oD = colShapeInfo[6];
+        oH = colShapeInfo[7];
+        oW = colShapeInfo[8];
+
+        kDeff = colShapeInfo[3] + (colShapeInfo[3] - 1) * (dD - 1);
+        kHeff = colShapeInfo[4] + (colShapeInfo[4] - 1) * (dH - 1);
+        kWeff = colShapeInfo[5] + (colShapeInfo[5] - 1) * (dW - 1);
+
+        volRank = 5;
+        colRank = 8;
+
+        volLen = shape::length(volShapeInfo);
+    }
+
+    __syncthreads();
+
+    const auto volInd = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if(volInd >= volLen)
+        return;
+
+    auto coords = sharedMem + threadIdx.x * colRank;
+
+    shape::index2coords(volRank, volShapeInfo + 1, volInd, volLen, coords);
+
+    const auto volOffset = shape::getOffset(0, volShapeInfo + 1, volShapeInfo + volRank + 1, coords, volRank);
+
+    const int imD = coords[2] + pD;
+    const int imH = coords[3] + pH;
+    const int imW = coords[4] + pW;
+
+    const int colDstart = (imD < kDeff) ? 0 : (imD - kDeff) / sD + 1;
+    const int colHstart = (imH < kHeff) ? 0 : (imH - kHeff) / sH + 1;
+    const int colWstart = (imW < kWeff) ? 0 : (imW - kWeff) / sW + 1;
+
+    const int colDend = nd4j::math::nd4j_min<uint>(imD / sD + 1, oD);
+    const int colHend = nd4j::math::nd4j_min<uint>(imH / sH + 1, oH);
+    const int colWend = nd4j::math::nd4j_min<uint>(imW / sW + 1, oW);
+
+    T val = 0;
+
+    for(coords[5] = colDstart; coords[5] < colDend; ++coords[5]) {
+        coords[2] = imD - coords[5] * sD;
+
+        for(coords[6] = colHstart; coords[6] < colHend; ++coords[6]) {
+            coords[3] = imH - coords[6] * sH;
+
+            for(coords[7] = colWstart; coords[7] < colWend; ++coords[7]) {
+                coords[4] = imW - coords[7] * sW;
+
+                if(coords[2] % dD == 0 && coords[3] % dH == 0 && coords[4] % dW == 0) {
+                    coords[2] /= dD;
+                    coords[3] /= dH;
+                    coords[4] /= dW;
+
+                    val += col[shape::getOffset(0, colShapeInfo + 1, colShapeInfo + colRank + 1, coords, colRank)];
+                }
+            }
+        }
+    }
+
+    vol[volOffset] = val;
+}
+
+//////////////////////////////////////////////////////////////////////////
+template <typename T>
+static void col2volCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream,
+                                const void* columns, const Nd4jLong* colShapeInfo,
+                                      void* volume, const Nd4jLong* volShapeInfo,
+                                const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
+
+    col2volCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(columns, colShapeInfo, volume, volShapeInfo, sD, sH, sW, pD, pH, pW, dD, dH, dW);
+}
+BUILD_SINGLE_TEMPLATE(template void col2volCudaLauncher, (const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t* stream, const void *col, const Nd4jLong *colShapeInfo, void *vol, const Nd4jLong *volShapeInfo, const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW), FLOAT_TYPES);
+
+//////////////////////////////////////////////////////////////////////////
+void ConvolutionUtils::col2vol(nd4j::graph::Context& block, const NDArray& col, NDArray& vol, const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
+
+    PointersManager manager(block.launchContext(), "col2vol");
+
+    const int threadsPerBlock = MAX_NUM_THREADS / 4;
+    const int blocksPerGrid = (vol.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
+    const int sharedMem = col.rankOf() * sizeof(Nd4jLong) * threadsPerBlock  + 128;
+
+    NDArray::prepareSpecialUse({&vol}, {&col});
+    BUILD_SINGLE_SELECTOR(vol.dataType(), col2volCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, block.launchContext()->getCudaStream(), col.getSpecialBuffer(), col.getSpecialShapeInfo(), vol.specialBuffer(), vol.specialShapeInfo(), sD, sH, sW, pD, pH, pW, dD, dH, dW), FLOAT_TYPES);
+    NDArray::registerSpecialUse({&vol}, {&col});
+
+    manager.synchronize();
+}
+
+
+
+
+
+
 
 
         void ConvolutionUtils::conv2d(nd4j::graph::Context & block, const NDArray* input, const NDArray* weights, const NDArray* bias, NDArray* output, const int kH, const int kW, const int sH, const int sW, int pH, int pW, const int dH, const int dW, const int isSameMode, const int isNCHW) {
@@ -140,11 +257,6 @@ void ConvolutionUtils::vol2col(nd4j::graph::Context& block, const NDArray& vol, 
 
         }
 
-
-
-        void ConvolutionUtils::col2vol(nd4j::graph::Context & block, const NDArray& col, NDArray& vol, const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
-
-        }
 
         void ConvolutionUtils::upsampling2d(nd4j::graph::Context & block, const NDArray& input, NDArray& output, const int factorH, const int factorW, const bool isNCHW) {
 
