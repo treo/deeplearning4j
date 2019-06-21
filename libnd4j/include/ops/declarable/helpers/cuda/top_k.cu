@@ -109,20 +109,62 @@ int inTopKFunctor(nd4j::LaunchContext * context, const NDArray* predictions, con
     return Status::OK();
 }
 
+    template <typename X, typename Y>
+    static _CUDA_G void topValuesMover(void *vx, Nd4jLong *xTadShapeInfo, Nd4jLong *xTadOffsets, void *vi, Nd4jLong *iTadShapeInfo, Nd4jLong *iTadOffsets, void *vz, Nd4jLong *zTadShapeInfo, Nd4jLong *zTadOffsets, Nd4jLong tadLength, int numTads, int k) {
+        for (int t = blockIdx.x; t < numTads; t += gridDim.x) {
+            auto x = reinterpret_cast<X*>(vx) + xTadOffsets[t];
+            auto i = reinterpret_cast<Y*>(vi) + iTadOffsets[t];
+            auto z = reinterpret_cast<X*>(vz) + zTadOffsets[t];
+
+            for (int e = threadIdx.x; e < k; e += blockDim.x) {
+                auto idx = i[shape::getIndexOffset(e, iTadShapeInfo, k)];
+
+                z[shape::getIndexOffset(e, zTadShapeInfo, k)] = x[shape::getIndexOffset(idx, xTadShapeInfo, tadLength)];
+            }
+        }
+    }
 
 
+    template <typename X, typename Y>
+    static int topKFunctor_(nd4j::LaunchContext * context, const NDArray* input, NDArray* values, NDArray* indices, const uint k, bool needSort) {
 
-    template <typename T>
-    static int topKFunctor_(nd4j::LaunchContext * context, const NDArray* input, NDArray* values, NDArray* indeces, const uint k, bool needSort) {
+        auto packX = ConstantTadHelper::getInstance()->tadForDimensions(input->getShapeInfo(), {input->rankOf() - 1});
+        auto packI = ConstantTadHelper::getInstance()->tadForDimensions(indices->shapeInfo(), {input->rankOf() - 1});
+        auto packZ = ConstantTadHelper::getInstance()->tadForDimensions(values->shapeInfo(), {input->rankOf() - 1});
+
+        auto tadLength = shape::length(packX.primaryShapeInfo());
+
+        // we get top K values first
+        if (k == 1) {
+            input->applyIndexReduce(indexreduce::IndexMax, indices, {input->rankOf() - 1});
+        } else {
+
+        }
+
+        // copy values on specified indices
+        topValuesMover<X,Y><<<256, 256, 1024, *context->getCudaStream()>>>(input->getSpecialBuffer(), packX.platformShapeInfo(), packX.platformOffsets(), indices->specialBuffer(), packI.platformShapeInfo(), packI.platformOffsets(), values->specialBuffer(), packZ.platformShapeInfo(), packZ.platformOffsets(), tadLength, packX.numberOfTads(), k);
+
+        // optional sort
+        if (k > 1 && needSort) {
+            //
+        }
+
         return Status::OK();
     }
 
-    int topKFunctor(nd4j::LaunchContext * context, const NDArray* input, NDArray* values, NDArray* indeces, const uint k, bool needSort) {
-        BUILD_SINGLE_SELECTOR(input->dataType(), return topKFunctor_, (context, input, values, indeces, k, needSort), NUMERIC_TYPES);
+    int topKFunctor(nd4j::LaunchContext * context, const NDArray* input, NDArray* values, NDArray* indices, const uint k, bool needSort) {
+        input->syncToDevice();
+
+        BUILD_DOUBLE_SELECTOR(input->dataType(), indices->dataType(), topKFunctor_, (context, input, values, indices, k, needSort), LIBND4J_TYPES, INTEGER_TYPES);
+
+        values->tickWriteDevice();
+        indices->tickWriteDevice();
+
+        return Status::OK();
     }
 
 
-    BUILD_SINGLE_TEMPLATE(template int topKFunctor_, (nd4j::LaunchContext * context, const NDArray* input, NDArray* values, NDArray* indices, const uint k, bool needSort), NUMERIC_TYPES);
+    BUILD_DOUBLE_TEMPLATE(template int topKFunctor_, (nd4j::LaunchContext * context, const NDArray* input, NDArray* values, NDArray* indices, const uint k, bool needSort), LIBND4J_TYPES, INTEGER_TYPES);
 
 }
 }
