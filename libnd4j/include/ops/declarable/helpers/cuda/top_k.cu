@@ -126,6 +126,70 @@ int inTopKFunctor(nd4j::LaunchContext * context, const NDArray* predictions, con
 
 
     template <typename X, typename Y>
+    static _CUDA_G void indicesAlongDimension(void *vx, Nd4jLong *xTadShapeInfo, Nd4jLong *xTadOffsets, void *vi, Nd4jLong *iTadShapeInfo, Nd4jLong *iTadOffsets, void *vz, Nd4jLong *zTadShapeInfo, Nd4jLong *zTadOffsets, Nd4jLong tadLength, int numTads, int k, int scanWidth) {
+        extern __shared__ char _shmem[];
+
+        X* tempValues = reinterpret_cast<X*>(_shmem) + threadIdx.x * scanWidth;
+        Y* tempIndices = reinterpret_cast<Y*>(reinterpret_cast<X*>(_shmem) + blockDim.x * scanWidth) + threadIdx.x * scanWidth;
+
+        __shared__ X localMaximum;
+        if (threadIdx.x == 0)
+            localMaximum = -DataTypeUtils::max<X>();
+        __syncthreads();
+
+        for (int t = blockIdx.x; t < numTads; t += gridDim.x) {
+            auto x = reinterpret_cast<X *>(vx) + xTadOffsets[t];
+            auto i = reinterpret_cast<Y *>(vi) + iTadOffsets[t];
+            auto z = reinterpret_cast<X *>(vz) + zTadOffsets[t];
+
+            // we'll do multiple reads here
+            for (int p = 0; p < k; p += scanWidth) {
+
+                // resetting temporary storage
+                for (int p = 0; p < scanWidth; p++) {
+                    tempValues[p] = -DataTypeUtils::max<X>();
+                    tempIndices[p] = DataTypeUtils::max<Y>();
+                }
+
+                // local max values/indices
+                for (int e = threadIdx.x; e < tadLength; e++) {
+                    auto value = x[shape::getIndexOffset(e, xTadShapeInfo, tadLength)];
+
+                    // we'll compare this value to current stored ones
+                    for (int f = 0; f < scanWidth; f++) {
+                        if (value > tempValues[f] && (p == 0 || value < localMaximum)) {
+                            tempValues[f] = value;
+                            tempIndices[f] = e;
+                        }
+                    }
+                }
+                __syncthreads();
+
+                // at this point we have local part ready for merge and define global maximum for this iteration, and local maximum for next iteration
+                for (uint activeThreads = blockDim.x / 2; activeThreads > 0; activeThreads /= 2) {
+                    if (threadIdx.x < activeThreads) {
+                        if (tempValues[0] < tempValues[0 + activeThreads * scanWidth]) {
+                            tempValues[0] = tempValues[0 + activeThreads * scanWidth];
+                            tempIndices[0] = tempIndices[0 + activeThreads * scanWidth];
+                        }
+                    }
+                    __syncthreads();
+                }
+                __syncthreads();
+
+                // at this point we know local minimum for next iteration
+                if (threadIdx.x == 0) {
+                    localMaximum = tempValues[scanWidth - 1];
+                    z[shape::getIndexOffset(p, zTadShapeInfo, k)] = tempValues[scanWidth - 1];
+                    i[shape::getIndexOffset(p, iTadShapeInfo, k)] = tempIndices[scanWidth - 1];
+                }
+                __syncthreads();
+            }
+        }
+    }
+
+
+    template <typename X, typename Y>
     static int topKFunctor_(nd4j::LaunchContext * context, const NDArray* input, NDArray* values, NDArray* indices, const uint k, bool needSort) {
 
         auto packX = ConstantTadHelper::getInstance()->tadForDimensions(input->getShapeInfo(), {input->rankOf() - 1});
@@ -137,12 +201,17 @@ int inTopKFunctor(nd4j::LaunchContext * context, const NDArray* predictions, con
         // we get top K values first
         if (k == 1) {
             input->applyIndexReduce(indexreduce::IndexMax, indices, {input->rankOf() - 1});
-        } else {
 
+            // copy values on specified indices
+            topValuesMover<X,Y><<<256, 256, 1024, *context->getCudaStream()>>>(input->getSpecialBuffer(), packX.platformShapeInfo(), packX.platformOffsets(), indices->specialBuffer(), packI.platformShapeInfo(), packI.platformOffsets(), values->specialBuffer(), packZ.platformShapeInfo(), packZ.platformOffsets(), tadLength, packX.numberOfTads(), k);
+        } else {
+            int scanWidth = 1;
+            int numTreads = 256;
+            int shMemSize = (numTreads * sizeof(X) * scanWidth) + (numTreads * sizeof(Y) * scanWidth) + 512;
+
+            indicesAlongDimension<X,Y><<<256, numTreads, shMemSize, *context->getCudaStream()>>>(input->getSpecialBuffer(), packX.platformShapeInfo(), packX.platformOffsets(), indices->specialBuffer(), packI.platformShapeInfo(), packI.platformOffsets(), values->specialBuffer(), packZ.platformShapeInfo(), packZ.platformOffsets(), tadLength, packX.numberOfTads(), k, scanWidth);
         }
 
-        // copy values on specified indices
-        topValuesMover<X,Y><<<256, 256, 1024, *context->getCudaStream()>>>(input->getSpecialBuffer(), packX.platformShapeInfo(), packX.platformOffsets(), indices->specialBuffer(), packI.platformShapeInfo(), packI.platformOffsets(), values->specialBuffer(), packZ.platformShapeInfo(), packZ.platformOffsets(), tadLength, packX.numberOfTads(), k);
 
         // optional sort
         if (k > 1 && needSort) {

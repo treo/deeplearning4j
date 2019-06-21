@@ -1022,10 +1022,12 @@ TEST_F(DeclarableOpsTests5, Test_TopK_3) {
                      }
     );
 
-    auto expV = NDArrayFactory::create<double>('c', {2, 3, 2}, {14.0f, 11.0f, 9.0f,
-                                         7.0f, 21.0f, 15.0f,
-                                         9.0f, 7.0f, 14.0f,
-                                         13.0f, 16.0f, 13.5f
+    auto expV = NDArrayFactory::create<double>('c', {2, 3, 2}, {14.0f, 11.0f,
+                                                                9.0f, 7.0f,
+                                                                21.0f, 15.0f,
+                                         9.0f, 7.0f,
+                                         14.0f, 13.0f,
+                                         16.0f, 13.5f
                         }
     );
 
@@ -1046,9 +1048,9 @@ TEST_F(DeclarableOpsTests5, Test_TopK_3) {
 //    i->printShapeInfo("shape I");
 //    expI.printShapeInfo("shape expI");
 
-//    v->printIndexedBuffer("v");
+    v->printIndexedBuffer("v");
 //    expV.printIndexedBuffer("expV");
-//    i->printIndexedBuffer("i");
+    i->printIndexedBuffer("i");
 //    expI.printIndexedBuffer("expI");
 
     ASSERT_TRUE(expV.isSameShape(v));
