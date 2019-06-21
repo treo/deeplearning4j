@@ -32,7 +32,7 @@ namespace nd4j {
             NDArray* min;
             NDArray* max;
 
-            REQUIRE_TRUE(block.width() == 3 || block.getTArguments()->size() == 2, 0, "No minimum/maximum values provided by either input arrays or TArgs");
+            REQUIRE_TRUE(block.width() == 3 || block.getTArguments()->size() == 2, 0, "fake_quant_with_min_max_vars: No minimum/maximum values provided by either input arrays or TArgs");
 
             if(block.width() == 3){
                 min = INPUT_VARIABLE(1);
