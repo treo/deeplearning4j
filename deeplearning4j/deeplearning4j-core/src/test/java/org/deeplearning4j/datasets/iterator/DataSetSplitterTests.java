@@ -22,8 +22,11 @@ import org.deeplearning4j.datasets.iterator.tools.DataSetGenerator;
 import org.junit.Test;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.exception.ND4JIllegalStateException;
+import org.nd4j.linalg.factory.Nd4j;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
 
@@ -250,6 +253,30 @@ public class DataSetSplitterTests extends BaseDL4JTest {
         DataSetIteratorSplitter.DataSetIterators iteratorList = splitter.getIterators();
 
         for (int partNumber = 0 ; partNumber < iteratorList.asList().size(); ++partNumber) {
+            int cnt = 0;
+            while (iteratorList.get(partNumber).hasNext()) {
+                val data = iteratorList.get(partNumber).next().getFeatures();
+
+                assertEquals("Train failed on iteration " + cnt, (float) (500*partNumber + cnt), data.getFloat(0), 1e-5);
+                cnt++;
+            }
+        }
+    }
+
+    @Test
+    public void testUnorderedSplitter_3() {
+        val back = new DataSetGenerator(1000, new int[]{32, 100}, new int[]{32, 5});
+
+        val splitter = new DataSetIteratorSplitter(back, 1000, 10);
+
+        DataSetIteratorSplitter.DataSetIterators iteratorList = splitter.getIterators();
+        Random random = new Random();
+        int[] indexes = new int[iteratorList.asList().size()];
+        for (int i = 0; i < indexes.length; ++i) {
+            indexes[i] = random.nextInt(iteratorList.asList().size());
+        }
+
+        for (int partNumber : indexes) {
             int cnt = 0;
             while (iteratorList.get(partNumber).hasNext()) {
                 val data = iteratorList.get(partNumber).next().getFeatures();
