@@ -62,8 +62,8 @@ public class FakeQuantWithMinMaxArgs extends DynamicCustomOp {
 
     @Override
     public List<DataType> calculateOutputDataTypes(List<DataType> inputDataTypes){
-        Preconditions.checkState(inputDataTypes != null && inputDataTypes.size() == 3, "Expected exactly 3 inputs, got %s", inputDataTypes);
-        return Collections.singletonList(DataType.FLOAT);
+        Preconditions.checkState(inputDataTypes != null && inputDataTypes.size() == 1, "Expected exactly 1 input, got %s", inputDataTypes);
+        return Collections.singletonList(inputDataTypes.get(0));
     }
 
     @Override
