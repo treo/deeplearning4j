@@ -14,6 +14,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Fake quantization operation.
+ * Quantized into range [0, 2^numBits - 1] when narrowRange is false, or [1, 2^numBits - 1] when narrowRange is true.
+ * Note that numBits must be in range 2 to 16 (inclusive).
+ * @author Alex Black
+ */
 public class FakeQuantWithMinMaxArgs extends DynamicCustomOp {
 
     protected boolean narrowRange;
@@ -23,6 +29,7 @@ public class FakeQuantWithMinMaxArgs extends DynamicCustomOp {
 
     public FakeQuantWithMinMaxArgs(SameDiff sd, SDVariable input, float min, float max, boolean narrowRange, int numBits){
         super(sd, input);
+        Preconditions.checkState(numBits >= 2 && numBits <= 16, "NumBits arg must be in range 2 to 16 inclusive, got %s", numBits);
         this.narrowRange = narrowRange;
         this.numBits = numBits;
         this.min = min;
