@@ -53,6 +53,8 @@ public class DataSetIteratorSplitter {
     protected AtomicBoolean resetPending = new AtomicBoolean(false);
     protected DataSet firstTrain = null;
 
+    protected int partNumber = 0;
+
     /**
      * The only constructor
      *
@@ -133,106 +135,183 @@ public class DataSetIteratorSplitter {
         log.warn("IteratorSplitter is used: please ensure you don't use randomization/shuffle in underlying iterator!");
     }
 
-    public List<DataSetIterator> getIterators() {
-        List<DataSetIterator> iterators = new ArrayList<>();
-        for (final double ratio : ratios) {
-            val partIterator = new DataSetIterator() {
-                @Override
-                public DataSet next(int i) {
-                    throw new UnsupportedOperationException();
-                }
+    public static class DataSetIterators {
+        private List<DataSetIterator> iterators = new ArrayList<>();
+        private int currentIndex = 0;
 
-                @Override
-                public List<String> getLabels() {
-                    return backedIterator.getLabels();
-                }
-
-                @Override
-                public int inputColumns() {
-                    return backedIterator.inputColumns();
-                }
-
-                @Override
-                public void remove() {
-                    throw new UnsupportedOperationException();
-                }
-
-                @Override
-                public int totalOutcomes() {
-                    return backedIterator.totalOutcomes();
-                }
-
-                @Override
-                public boolean resetSupported() {
-                    return backedIterator.resetSupported();
-                }
-
-                @Override
-                public boolean asyncSupported() {
-                    return backedIterator.asyncSupported();
-                }
-
-                @Override
-                public void reset() {
-                    resetPending.set(true);
-                }
-
-                @Override
-                public int batch() {
-                    return backedIterator.batch();
-                }
-
-                @Override
-                public void setPreProcessor(DataSetPreProcessor dataSetPreProcessor) {
-                    backedIterator.setPreProcessor(dataSetPreProcessor);
-                }
-
-                @Override
-                public DataSetPreProcessor getPreProcessor() {
-                    return backedIterator.getPreProcessor();
-                }
-
-
-                @Override
-                public boolean hasNext() {
-                    if (resetPending.get()) {
-                        if (resetSupported()) {
-                            backedIterator.reset();
-                            counter.set(0);
-                            resetPending.set(false);
-                        } else
-                            throw new UnsupportedOperationException("Reset isn't supported by underlying iterator");
-                    }
-
-                    val state = backedIterator.hasNext();
-                    if (state && counter.get() < ratio * totalExamples)
-                        return true;
-                    else
-                        return false;
-                }
-
-                @Override
-                public DataSet next() {
-                    counter.incrementAndGet();
-                    val p = backedIterator.next();
-
-                    if (counter.get() == 1 && firstTrain == null) {
-                        // first epoch ever, we'll save first dataset and will use it to check for equality later
-                        firstTrain = p.copy();
-                        firstTrain.detach();
-                    } else if (counter.get() == 1) {
-                        // epoch > 1, comparing first dataset to previously stored dataset. they should be equal
-                        int cnt = 0;
-                        if (!p.getFeatures().equalsWithEps(firstTrain.getFeatures(), 1e-5))
-                            throw new ND4JIllegalStateException("First examples do not match. Randomization was used?");
-                    }
-
-                    return p;
-                }
-            };
-            iterators.add(partIterator);
+        public void add(DataSetIterator iterator) {
+            iterators.add(iterator);
         }
-        return iterators;
+
+        public DataSetIterator get(int i) {
+            this.currentIndex = i;
+            return iterators.get(i);
+        }
+
+        public int getCurrentIndex() {
+            return currentIndex;
+        }
+
+        public List<DataSetIterator> asList() {
+            return iterators;
+        }
+    }
+
+    public static class ScrollableDataSetIterator implements DataSetIterator {
+        private int thisPart = 0;
+        protected DataSetIterator backedIterator;
+        protected AtomicLong counter = new AtomicLong(0);
+
+        protected AtomicBoolean resetPending = new AtomicBoolean(false);
+        protected DataSet firstTrain = null;
+        private double ratio;
+        private long totalExamples;
+        private long itemsPerPart;
+
+
+        public ScrollableDataSetIterator(int num, DataSetIterator backedIterator, AtomicLong counter,
+                                         AtomicBoolean resetPending, DataSet firstTrain, double ratio,
+                                         int totalExamples) {
+            this.thisPart = num;
+            this.backedIterator = backedIterator;
+            this.counter = counter;
+            this.resetPending = resetPending;
+            this.firstTrain = firstTrain;
+            this.ratio = ratio;
+            this.totalExamples = totalExamples;
+            this.itemsPerPart = (long)(totalExamples * ratio);
+        }
+
+        @Override
+        public DataSet next(int i) {
+
+            //throw new UnsupportedOperationException();
+            if (i == 0) {
+                backedIterator.reset();
+                if (backedIterator.hasNext())
+                    return backedIterator.next();
+            }
+            else {
+                int cnt = 0;
+                DataSet retVal = null;
+                for (; cnt <= i; ++cnt) {
+                    counter.incrementAndGet();
+                    val state = backedIterator.hasNext();
+                    if (state /*&& counter.get() < ratio * totalExamples*/)
+                        retVal = backedIterator.next();
+                    else
+                        break;
+                }
+                if (cnt == i+1)
+                    return retVal;
+            }
+            return null;
+        }
+
+        @Override
+        public List<String> getLabels() {
+            return backedIterator.getLabels();
+        }
+
+        @Override
+        public int inputColumns() {
+            return backedIterator.inputColumns();
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int totalOutcomes() {
+            return backedIterator.totalOutcomes();
+        }
+
+        @Override
+        public boolean resetSupported() {
+            return backedIterator.resetSupported();
+        }
+
+        @Override
+        public boolean asyncSupported() {
+            return backedIterator.asyncSupported();
+        }
+
+        @Override
+        public void reset() {
+            resetPending.set(true);
+        }
+
+        @Override
+        public int batch() {
+            return backedIterator.batch();
+        }
+
+        @Override
+        public void setPreProcessor(DataSetPreProcessor dataSetPreProcessor) {
+            backedIterator.setPreProcessor(dataSetPreProcessor);
+        }
+
+        @Override
+        public DataSetPreProcessor getPreProcessor() {
+            return backedIterator.getPreProcessor();
+        }
+
+
+        @Override
+        public boolean hasNext() {
+            if (resetPending.get()) {
+                if (resetSupported()) {
+                    backedIterator.reset();
+                    counter.set(0);
+                    resetPending.set(false);
+                } else
+                    throw new UnsupportedOperationException("Reset isn't supported by underlying iterator");
+            }
+
+            boolean state = false;
+            for (int i = 0; i <= thisPart * itemsPerPart; ++i) {
+                state = backedIterator.hasNext();
+                if (!state)
+                    break;
+            }
+            if (state && counter.get() < itemsPerPart)
+                return true;
+            else
+                return false;
+
+        }
+
+        @Override
+        public DataSet next() {
+            counter.incrementAndGet();
+            val p = backedIterator.next();
+
+            if (counter.get() == 1 && firstTrain == null) {
+                // first epoch ever, we'll save first dataset and will use it to check for equality later
+                firstTrain = p.copy();
+                firstTrain.detach();
+            } else if (counter.get() == 1) {
+                // epoch > 1, comparing first dataset to previously stored dataset. they should be equal
+                int cnt = 0;
+                if (!p.getFeatures().equalsWithEps(firstTrain.getFeatures(), 1e-5))
+                    throw new ND4JIllegalStateException("First examples do not match. Randomization was used?");
+            }
+
+            return p;
+        }
+    }
+
+    public DataSetIterators getIterators() {
+        DataSetIterators retVal = new DataSetIterators();
+        int partN = 0;
+        for (final double ratio : ratios) {
+            ScrollableDataSetIterator partIterator =
+                    new ScrollableDataSetIterator(partN++, backedIterator, counter, resetPending, firstTrain, ratio, (int)totalExamples);
+            retVal.add(partIterator);
+        }
+        return retVal;
     }
 
 
