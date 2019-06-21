@@ -31,6 +31,9 @@ namespace nd4j {
 
             NDArray* min;
             NDArray* max;
+
+            REQUIRE_TRUE(block.width() == 3 || block.getTArguments()->size() == 2, 0, "No minimum/maximum values provided by either input arrays or TArgs");
+
             if(block.width() == 3){
                 min = INPUT_VARIABLE(1);
                 max = INPUT_VARIABLE(2);
@@ -39,8 +42,6 @@ namespace nd4j {
                 NDArray m2 = NDArrayFactory::create(x->dataType(), T_ARG(1), block.launchContext());
                 min = &m;
                 max = &m2;
-            } else {
-                throw std::runtime_error("No minimum/maximum values provided by either input or TArgs");
             }
             auto output  = OUTPUT_VARIABLE(0);
             int numBits = INT_ARG(0);
