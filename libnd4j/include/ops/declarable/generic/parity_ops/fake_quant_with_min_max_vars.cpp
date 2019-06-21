@@ -25,17 +25,27 @@
 #include <ops/declarable/helpers/fake_quantization.h>
 namespace nd4j {
     namespace ops {
-        CONFIGURABLE_OP_IMPL(fake_quant_with_min_max_vars, 3, 1, true, 0, 0) {
+        CONFIGURABLE_OP_IMPL(fake_quant_with_min_max_vars, 1, 1, true, 0, 0) {
 
             auto x = INPUT_VARIABLE(0);
-            auto min = INPUT_VARIABLE(1);
-            auto max = INPUT_VARIABLE(2);
+
+            NDArray* min;
+            NDArray* max;
+            if(block.width() == 3){
+                min = INPUT_VARIABLE(1);
+                max = INPUT_VARIABLE(2);
+            } else if(block.getTArguments()->size() == 2){
+                NDArray m = NDArrayFactory::create(DataType::FLOAT32, T_ARG(0), block.launchContext());
+                NDArray m2 = NDArrayFactory::create(DataType::FLOAT32, T_ARG(1), block.launchContext());
+                min = &m;
+                max = &m2;
+            }
             auto output  = OUTPUT_VARIABLE(0);
             int numBits = INT_ARG(0);
             bool narrowed = INT_ARG(1);
             if (block.getIArguments()->size() == 2) {
-                narrowed =INT_ARG(1);
                 numBits = INT_ARG(0);
+                narrowed = INT_ARG(1);
                 REQUIRE_TRUE(numBits > 1 && numBits < 17, 0, "fake_quant_with_min_max_vars: Number of bits for quatization should be in between 2 and 16, but %i was given.", numBits);
             }
 
@@ -48,6 +58,8 @@ namespace nd4j {
             -> setAllowedOutputTypes({ALL_FLOATS})
             -> setAllowedInputTypes({ALL_INTS, ALL_FLOATS});
         }
+
+        DECLARE_SYN(fake_quant_with_min_max_args, fake_quant_with_min_max_vars);
     }
 }
 

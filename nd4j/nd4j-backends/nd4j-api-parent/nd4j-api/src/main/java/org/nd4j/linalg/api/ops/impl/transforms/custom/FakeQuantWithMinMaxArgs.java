@@ -14,33 +14,38 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class FakeQuantWithMinMaxVars extends DynamicCustomOp {
+public class FakeQuantWithMinMaxArgs extends DynamicCustomOp {
 
     protected boolean narrowRange;
     protected int numBits;
+    protected float min;
+    protected float max;
 
-    public FakeQuantWithMinMaxVars(SameDiff sd, SDVariable input, SDVariable min, SDVariable max, boolean narrowRange, int numBits){
-        super(sd, new SDVariable[]{input, min, max});
+    public FakeQuantWithMinMaxArgs(SameDiff sd, SDVariable input, float min, float max, boolean narrowRange, int numBits){
+        super(sd, input);
         this.narrowRange = narrowRange;
         this.numBits = numBits;
+        this.min = min;
+        this.max = max;
         addArgs();
     }
 
-    public FakeQuantWithMinMaxVars(){ }
+    public FakeQuantWithMinMaxArgs(){ }
 
     protected void addArgs(){
         iArguments.clear();
         addIArgument(numBits, narrowRange ? 1 : 0);
+        addTArgument(min, max);
     }
 
     @Override
     public String opName(){
-        return "fake_quant_with_min_max_vars";
+        return "fake_quant_with_min_max_args";
     }
 
     @Override
     public String tensorflowName(){
-        return "FakeQuantWithMinMaxVars";
+        return "FakeQuantWithMinMaxArgs";
     }
 
     @Override
@@ -49,6 +54,8 @@ public class FakeQuantWithMinMaxVars extends DynamicCustomOp {
             this.narrowRange = attributesForNode.get("narrow_range").getB();
         }
         this.numBits = (int)attributesForNode.get("num_bits").getI();
+        this.min = attributesForNode.get("min").getF();
+        this.max = attributesForNode.get("max").getF();
         addArgs();
     }
 

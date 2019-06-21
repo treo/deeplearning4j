@@ -369,6 +369,8 @@ public class ImportClassMapping {
             org.nd4j.linalg.api.ops.impl.transforms.custom.DynamicPartition.class,
             org.nd4j.linalg.api.ops.impl.transforms.custom.DynamicStitch.class,
             org.nd4j.linalg.api.ops.impl.transforms.custom.EqualTo.class,
+            org.nd4j.linalg.api.ops.impl.transforms.custom.FakeQuantWithMinMaxArgs.class,
+            org.nd4j.linalg.api.ops.impl.transforms.custom.FakeQuantWithMinMaxVars.class,
             org.nd4j.linalg.api.ops.impl.transforms.custom.Fill.class,
             org.nd4j.linalg.api.ops.impl.transforms.custom.GreaterThan.class,
             org.nd4j.linalg.api.ops.impl.transforms.custom.GreaterThanOrEqual.class,
