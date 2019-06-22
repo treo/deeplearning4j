@@ -125,7 +125,11 @@ public class TFGraphTestAllSameDiff {   //Note: Can't extend BaseNd4jTest here a
             "g_11",
 
             //2019/06/21 - Not yet implemented: https://github.com/eclipse/deeplearning4j/issues/7913
-            "fake_quant/min_max_args_per_channel/.*"
+            "fake_quant/min_max_args_per_channel/.*",
+
+            //2019/06/22 - Known issue: https://github.com/eclipse/deeplearning4j/issues/7935
+            "fake_quant/min_max_vars/.*",
+            "fake_quant/min_max_args/.*"
     };
 
     @BeforeClass
