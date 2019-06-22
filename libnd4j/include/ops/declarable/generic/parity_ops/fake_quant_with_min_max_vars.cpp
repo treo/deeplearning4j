@@ -34,12 +34,14 @@ namespace nd4j {
 
             REQUIRE_TRUE(block.width() == 3 || block.getTArguments()->size() == 2, 0, "fake_quant_with_min_max_vars: No minimum/maximum values provided by either input arrays or TArgs");
 
+            NDArray m;
+            NDArray m2;
             if(block.width() == 3){
                 min = INPUT_VARIABLE(1);
                 max = INPUT_VARIABLE(2);
             } else if(block.getTArguments()->size() == 2){
-                NDArray m = NDArrayFactory::create(x->dataType(), T_ARG(0), block.launchContext());
-                NDArray m2 = NDArrayFactory::create(x->dataType(), T_ARG(1), block.launchContext());
+                m = NDArrayFactory::create(x->dataType(), T_ARG(0), block.launchContext());
+                m2 = NDArrayFactory::create(x->dataType(), T_ARG(1), block.launchContext());
                 min = &m;
                 max = &m2;
             }
@@ -51,7 +53,6 @@ namespace nd4j {
                 narrowed = INT_ARG(1);
                 REQUIRE_TRUE(numBits > 1 && numBits < 17, 0, "fake_quant_with_min_max_vars: Number of bits for quatization should be in between 2 and 16, but %i was given.", numBits);
             }
-
             helpers::fakeQuantWithMinMaxVars(x, min, max, numBits, narrowed, output);
             return ND4J_STATUS_OK;
         }
