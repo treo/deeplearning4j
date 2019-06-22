@@ -1635,6 +1635,7 @@ public class MiscOpValidation extends BaseOpValidation {
 
     @Test
     public void testCheckNumerics(){
+        OpValidationSuite.ignoreFailing();  //https://github.com/eclipse/deeplearning4j/issues/7927
 
         SameDiff sd = SameDiff.create();
         SDVariable ph = sd.placeHolder("in", DataType.DOUBLE, 3, 4);
