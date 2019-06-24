@@ -30,7 +30,7 @@ void oesTadKernel(void *vx, Nd4jLong *xShapeInfo,
                 bool descending) {
 
     auto x = static_cast<T*>(vx);
-    const int sharedSize = 1;
+    const int sharedSize = 32768;
 
     __shared__ int xLength;
     __shared__ int xTadLength;
@@ -46,9 +46,6 @@ void oesTadKernel(void *vx, Nd4jLong *xShapeInfo,
         shmem = (T *) shrd;
 
         cached = xTadLength <= (sharedSize / sizeof(T));
-
-        if (blockIdx.x == 0)
-            printf("Pew-pew\n");
     }
     __syncthreads();
 
@@ -129,8 +126,6 @@ __host__ void oesTadGeneric(dim3 &launchDims, cudaStream_t *stream,
                                 int *dimension, int dimensionLength,
                                 Nd4jLong *tadShapeInfo, Nd4jLong *tadOffsets,
                                 bool descending) {
-
-    nd4j_printf("Starting oesTadGeneric...\n","");
 
     execOesTadKernel<T><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(vx, xShapeInfo, dimension, dimensionLength, tadShapeInfo, tadOffsets, descending);
     nd4j::DebugHelper::checkErrorCode(stream, "oesTad(...) failed");

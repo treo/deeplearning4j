@@ -49,7 +49,6 @@ TEST_F(LegacyOpsCudaTests, test_sortTad_1) {
 
     int axis = 1;
     auto packX = ConstantTadHelper::getInstance()->tadForDimensions(x.shapeInfo(), axis);
-    nd4j_printf("numTads: %i\n", (int) packX.numberOfTads());
 
     Nd4jPointer extras[2] = {nullptr, LaunchContext::defaultContext()->getCudaStream()};
 
@@ -57,8 +56,6 @@ TEST_F(LegacyOpsCudaTests, test_sortTad_1) {
     NativeOps nativeOps;
     nativeOps.sortTad(extras, x.buffer(), x.shapeInfo(), x.specialBuffer(), x.specialShapeInfo(), &axis, 1, packX.platformShapeInfo(), packX.platformOffsets(), false);
     x.tickWriteDevice();
-
-    x.printIndexedBuffer("x after");
 
     ASSERT_EQ(e, x);
 }
