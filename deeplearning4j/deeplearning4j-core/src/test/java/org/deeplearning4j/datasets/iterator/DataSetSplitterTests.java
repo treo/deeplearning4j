@@ -184,7 +184,7 @@ public class DataSetSplitterTests extends BaseDL4JTest {
     public void testSplitter_5() {
         val back = new DataSetGenerator(1000, new int[]{32, 100}, new int[]{32, 5});
 
-        val splitter = new DataSetIteratorSplitter(back, new int[]{1000});
+        val splitter = new DataSetIteratorSplitter(back, new int[]{900, 100});
 
         DataSetIteratorSplitter.DataSetIterators iteratorList = splitter.getIterators();
         val numEpochs = 10;
