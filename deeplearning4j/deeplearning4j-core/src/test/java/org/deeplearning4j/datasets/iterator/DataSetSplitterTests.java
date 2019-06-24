@@ -184,7 +184,7 @@ public class DataSetSplitterTests extends BaseDL4JTest {
     public void testSplitter_5() {
         val back = new DataSetGenerator(1000, new int[]{32, 100}, new int[]{32, 5});
 
-        val splitter = new DataSetIteratorSplitter(back, 1000, new int[]{1000});
+        val splitter = new DataSetIteratorSplitter(back, new int[]{1000});
 
         DataSetIteratorSplitter.DataSetIterators iteratorList = splitter.getIterators();
         val numEpochs = 10;
@@ -213,7 +213,7 @@ public class DataSetSplitterTests extends BaseDL4JTest {
     public void testUnorderedSplitter_1() {
         val back = new DataSetGenerator(1000, new int[]{32, 100}, new int[]{32, 5});
 
-        val splitter = new DataSetIteratorSplitter(back, 1000, new int[]{500, 500});
+        val splitter = new DataSetIteratorSplitter(back, new int[]{500, 500});
 
         DataSetIteratorSplitter.DataSetIterators iteratorList = splitter.getIterators();
         val numEpochs = 10;
@@ -249,7 +249,7 @@ public class DataSetSplitterTests extends BaseDL4JTest {
     public void testUnorderedSplitter_2() {
         val back = new DataSetGenerator(1000, new int[]{32, 100}, new int[]{32, 5});
 
-        val splitter = new DataSetIteratorSplitter(back, 1000, new int[]{2});
+        val splitter = new DataSetIteratorSplitter(back, new int[]{2});
 
         DataSetIteratorSplitter.DataSetIterators iteratorList = splitter.getIterators();
 
@@ -268,7 +268,7 @@ public class DataSetSplitterTests extends BaseDL4JTest {
     public void testUnorderedSplitter_3() {
         val back = new DataSetGenerator(1000, new int[]{32, 100}, new int[]{32, 5});
 
-        val splitter = new DataSetIteratorSplitter(back, 1000, new int[]{10});
+        val splitter = new DataSetIteratorSplitter(back, new int[]{10});
 
         DataSetIteratorSplitter.DataSetIterators iteratorList = splitter.getIterators();
         Random random = new Random();

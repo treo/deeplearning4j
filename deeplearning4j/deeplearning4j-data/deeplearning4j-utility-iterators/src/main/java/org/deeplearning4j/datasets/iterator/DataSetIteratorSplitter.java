@@ -112,10 +112,14 @@ public class DataSetIteratorSplitter {
         log.warn("IteratorSplitter is used: please ensure you don't use randomization/shuffle in underlying iterator!");
     }
 
-    public DataSetIteratorSplitter(@NonNull DataSetIterator baseIterator, long totalBatches, int[] splits) {
+    public DataSetIteratorSplitter(@NonNull DataSetIterator baseIterator, int[] splits) {
 
         /*if (!(simpleRatio > 0.0 && simpleRatio < 1.0))
            throw new ND4JIllegalStateException("Ratio value should be in range of 0.0 > X < 1.0");*/
+
+        int totalBatches = 0;
+        for (val v:splits)
+            totalBatches += v;
 
         if (totalBatches < 0)
             throw new ND4JIllegalStateException("totalExamples number should be positive value");
