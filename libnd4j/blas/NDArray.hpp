@@ -3065,6 +3065,7 @@ void NDArray::assign(const NDArray& other) {
             preparePrimaryUse({this}, {&other});
             BUILD_DOUBLE_SELECTOR(dataType(), other.dataType(), templatedDoubleAssign, (buffer(), 0, other.getBuffer(), 0), LIBND4J_TYPES, LIBND4J_TYPES);
             registerPrimaryUse({this}, {&other});
+            this->syncToDevice();
         }
         else {
             if (dataType() != other.dataType()) {
