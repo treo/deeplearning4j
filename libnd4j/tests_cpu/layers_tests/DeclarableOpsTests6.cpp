@@ -2615,22 +2615,6 @@ TEST_F(DeclarableOpsTests6, Test_Diag_119_3) {
     delete result;
 }
 
-
-TEST_F(DeclarableOpsTests6, maxPool2D_float_test1) {
-
-    NDArray input('c', {1,1,4,5}, nd4j::DataType::FLOAT32);
-    NDArray z('c', {1,1,4,5}, nd4j::DataType::FLOAT32);
-
-    input.linspace(1.);
-
-    nd4j::ops::maxpool2d op;
-    auto results = op.execute({&input}, {}, {2,2,  1,1,  1,1,  2,2,  1,0,0});
-
-    ASSERT_EQ(Status::OK(), results->status());
-
-    delete results;
-}
-
 TEST_F(DeclarableOpsTests6, concat_test14) {
 
     NDArray x0('c', {1, 55, 40}, nd4j::DataType::DOUBLE);

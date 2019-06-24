@@ -96,49 +96,6 @@ TYPED_TEST(TypedDeclarableOpsTests4, Test_Pooling_Parity_2) {
     delete result;
 }
 
-
-TYPED_TEST(TypedDeclarableOpsTests4, Test_Pooling_Parity_3) {
-    auto x = NDArrayFactory::create<TypeParam>('c', {2, 4, 4, 2});
-    auto exp = NDArrayFactory::create<TypeParam>('c', {2, 2, 2, 2}, {11.f,  12.f,  15.f,  16.f,  27.f,  28.f,  31.f,  32.f,  43.f,  44.f,  47.f,  48.f,  59.f,  60.f,  63.f, 64.f});
-
-    x.linspace(1);
-
-
-    nd4j::ops::maxpool2d op;
-    auto result = op.execute({&x}, {}, {2, 2, 2, 2, 0, 0, 1, 1, 1, 1, 1});
-
-    ASSERT_EQ(ND4J_STATUS_OK, result->status());
-
-    auto z = result->at(0);
-
-    ASSERT_TRUE(exp.isSameShape(z));
-    ASSERT_TRUE(exp.equalsTo(z));
-
-    delete result;
-}
-
-
-TYPED_TEST(TypedDeclarableOpsTests4, Test_Pooling_Parity_4) {
-    auto x = NDArrayFactory::create<TypeParam>('c', {2, 4, 4, 2});
-    auto exp = NDArrayFactory::create<TypeParam>('c', {2, 2, 2, 2}, {11.f,  12.f,  15.f,  16.f,  27.f,  28.f,  31.f,  32.f,  43.f,  44.f,  47.f,  48.f,  59.f,  60.f,  63.f, 64.f});
-
-    x.linspace(1);
-
-
-    nd4j::ops::maxpool2d op;
-    auto result = op.execute({&x}, {}, {2, 2, 2, 2, 0, 0, 1, 1, 0, 1, 1});
-
-    ASSERT_EQ(ND4J_STATUS_OK, result->status());
-
-    auto z = result->at(0);
-
-    ASSERT_TRUE(exp.isSameShape(z));
-    ASSERT_TRUE(exp.equalsTo(z));
-
-    delete result;
-}
-
-
 TYPED_TEST(TypedDeclarableOpsTests4, Test_Pooling_Parity_5) {
     auto x = NDArrayFactory::create<TypeParam>('c', {2, 5, 5, 2});
     auto exp = NDArrayFactory::create<TypeParam>('c', {2, 3, 3, 2}, {7.f,    8.f,   11.f,   12.f,   14.f,   15.f,   27.f,   28.f,   31.f,   32.f,   34.f,   35.f, 42.f,   43.f,   46.f,   47.f,   49.f,   50.f,   57.f,   58.f,   61.f,   62.f,   64.f,   65.f, 77.f,   78.f,   81.f,   82.f,   84.f,   85.f,   92.f,   93.f,   96.f,   97.f,   99.f,  100.f,});
@@ -178,25 +135,6 @@ TYPED_TEST(TypedDeclarableOpsTests4, Test_Pooling_Parity_6) {
     delete result;
 }
 
-TYPED_TEST(TypedDeclarableOpsTests4, Test_Pooling_Parity_7) {
-    auto x = NDArrayFactory::create<TypeParam>('c', {2, 2, 5, 5});
-    auto exp = NDArrayFactory::create<TypeParam>('c', {2, 2, 2, 2}, {7.f, 9.f, 17.f, 19.f, 32.f, 34.f, 42.f, 44.f, 57.f, 59.f, 67.f, 69.f, 82.f, 84.f, 92.f, 94.f});
-
-    x.linspace(1);
-
-
-    nd4j::ops::maxpool2d op;
-    auto result = op.execute({&x}, {}, {2, 2, 2, 2, 0, 0, 1, 1, 0, 1, 0});
-
-    ASSERT_EQ(ND4J_STATUS_OK, result->status());
-
-    auto z = result->at(0);
-
-    ASSERT_TRUE(exp.isSameShape(z));
-    ASSERT_TRUE(exp.equalsTo(z));
-
-    delete result;
-}
 
 TYPED_TEST(TypedDeclarableOpsTests4, Test_Pooling_Parity_8) {
     auto x = NDArrayFactory::create<TypeParam>('c', {2, 2, 5, 5});
@@ -2121,33 +2059,6 @@ TYPED_TEST(TypedDeclarableOpsTests4, maxpool3d_bp_test4) {
     ASSERT_EQ(Status::OK(), results->status());
     ASSERT_TRUE(expected.isSameShape(output));
     ASSERT_TRUE(expected.equalsTo(output));
-
-    delete results;
-}
-
-//////////////////////////////////////////////////////////////////////
-TYPED_TEST(TypedDeclarableOpsTests4, maxpool2d_test1) {
-
-    int bS = 3;                 // batch size (number of samples)
-    int iC = 3;                 // input channels
-    int iH = 28, iW = 28;       // input height/width
-    int kH = 2,  kW = 2;        // kernel (filter) height/width
-    int sH = 1,  sW = 1;        // stride height/width
-    int pH = 0,  pW = 0;        // padding height/width
-    int dH = 1,  dW = 1;        // dilation height/width
-
-    int oH = 27, oW = 27;       // output height/width
-
-    int isSameMode = 0;         // 1-SAME,  0-VALID
-
-    auto input    = NDArrayFactory::create<TypeParam>('c', {bS, iC, iH, iW});
-
-    nd4j::ops::maxpool2d op;
-    auto results = op.execute({&input}, {}, {kH,kW,  sH,sW,  pH,pW,  dH,dW, isSameMode, 1, 0});
-    auto output = results->at(0);
-
-    ASSERT_EQ(Status::OK(), results->status());
-    ASSERT_TRUE(output->isSameShape({bS, iC, oH, oW}));
 
     delete results;
 }
