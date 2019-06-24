@@ -40,6 +40,22 @@ using namespace nd4j::graph;
 class ConvolutionTests2 : public testing::Test {
 public:
 
+    const int bS = 2;       // batch size
+    const int iD = 1;       // input depth (number of picture channels, for example rgb=3)
+    const int iH = 28;      // picture height in pixels
+    const int iW = 28;      // picture width in pixels
+    const int oD = 3;       // output depth (= N for dense layer)
+    const int kH = 5;       // kernel height in pixels
+    const int kW = 5;       // kernel width in pixels
+    const int sH = 1;       // stride step in horizontal direction
+    const int sW = 1;       // stride step in vertical direction
+    const int pH = 0;       // padding height
+    const int pW = 0;       // padding width
+    const int dH = 2;       // dilation height
+    const int dW = 2;       // dilation width
+    const int oH = (iH - kH - (kH-1)*(dH-1) + 2*pH)/sH + 1;     // output height
+    const int oW = (iW - kW - (kW-1)*(dW-1) + 2*pW)/sW + 1;     // output width
+
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -599,6 +615,345 @@ TEST_F(ConvolutionTests2, deconv3d_bp_test4) {
     const bool isGradCorrect = GradCheck::checkGrad(opFF, opBP, argsHolderFF, argsHolderBP);
 
     ASSERT_TRUE(isGradCorrect);
+}
+
+//////////////////////////////////////////////////////////////////////
+TEST_F(ConvolutionTests2, maxpool2d_1) {
+
+    auto x = NDArrayFactory::create_<float>('c', {bS,iD,iH,iW});
+    auto exp = NDArrayFactory::create<float>('c',{bS,iD,oH,oW});
+    // auto z('c',{bS,iD,oH,oW});
+
+    auto variableSpace = new VariableSpace();
+    variableSpace->putVariable(-1, x);
+    // variableSpace->putVariable(1, &z);
+
+    auto block = new Context(1, variableSpace, false);
+    block->fillInputs({-1});
+    std::vector<int>* argI = block->getIArguments();
+    *argI = {kH,kW, sH,sW, pH,pW, dH,dW, 0};  // 0,1 - kernel Height/Width; 2,3 - stride Height/Width; 4,5 - pad Height/Width; 6,7 - dilation Height/Width; 8 - same mode;
+
+    nd4j::ops::maxpool2d pooling;
+    Nd4jStatus status = pooling.execute(block);
+    ASSERT_EQ(ND4J_STATUS_OK, status);
+
+    auto result = variableSpace->getVariable(block->getNodeId())->getNDArray();
+    // result->printShapeInfo();
+    ASSERT_TRUE(exp.isSameShape(result));
+
+    delete variableSpace;
+    delete block;
+}
+
+//////////////////////////////////////////////////////////////////////
+TEST_F(ConvolutionTests2, maxpool2d_2) {
+
+    const int bS = 2;
+    const int iD = 1;
+    const int iH = 28;
+    const int iW = 28;
+    const int kH = 5;
+    const int kW = 5;
+    const int sH = 1;
+    const int sW = 1;
+    const int pH = 0;
+    const int pW = 0;
+    const int dH = 1;
+    const int dW = 1;
+    const int oH = (iH - kH - (kH-1)*(dH-1) + 2*pH)/sH + 1;     // output height
+    const int oW = (iW - kW - (kW-1)*(dW-1) + 2*pW)/sW + 1;     // output width
+
+
+    auto x = NDArrayFactory::create_<float>('c', {bS,iD,iH,iW});
+    auto exp = NDArrayFactory::create<float>('c',{bS,iD,oH,oW});
+    // auto z('c',{bS,iD,oH,oW});
+
+    auto variableSpace = new VariableSpace();
+    variableSpace->putVariable(-1, x);
+    // variableSpace->putVariable(1, &z);
+
+    auto block = new Context(1, variableSpace, false);
+    block->fillInputs({-1});
+    std::vector<int>* argI = block->getIArguments();
+    *argI = {kH,kW, sH,sW, pH,pW, dH,dW, 0};  // 0,1 - kernel Height/Width; 2,3 - stride Height/Width; 4,5 - pad Height/Width; 6,7 - dilation Height/Width; 8 - same mode;
+
+    nd4j::ops::maxpool2d pooling;
+    Nd4jStatus status = pooling.execute(block);
+    ASSERT_EQ(ND4J_STATUS_OK, status);
+
+    auto result = variableSpace->getVariable(block->getNodeId())->getNDArray();
+    // result->printShapeInfo();
+    ASSERT_TRUE(exp.isSameShape(result));
+
+    delete variableSpace;
+    delete block;
+}
+
+//////////////////////////////////////////////////////////////////////
+TEST_F(ConvolutionTests2, maxpool2d_3) {
+
+    const int bS = 2;
+    const int iD = 1;
+    const int iH = 28;
+    const int iW = 28;
+    const int kH = 5;
+    const int kW = 5;
+    const int sH = 1;
+    const int sW = 1;
+    const int pH = 0;
+    const int pW = 0;
+    const int dH = 1;
+    const int dW = 1;
+    const int oH = (int) nd4j::math::nd4j_ceil<float, int>(iH * 1.f / sH);
+    const int oW = (int) nd4j::math::nd4j_ceil<float, int>(iW * 1.f / sW);
+
+
+    auto x = NDArrayFactory::create_<float>('c', {bS,iD,iH,iW});
+    auto exp = NDArrayFactory::create<float>('c',{bS,iD,oH,oW});
+    // auto z('c',{bS,iD,oH,oW});
+
+    auto variableSpace = new VariableSpace();
+    variableSpace->putVariable(-1, x);
+    // variableSpace->putVariable(1, &z);
+
+    auto block = new Context(1, variableSpace, false);
+    block->fillInputs({-1});
+    std::vector<int>* argI = block->getIArguments();
+    *argI = {kH,kW, sH,sW, pH,pW, dH,dW, 1};  // 0,1 - kernel Height/Width; 2,3 - stride Height/Width; 4,5 - pad Height/Width; 6,7 - dilation Height/Width; 8 - same mode;
+
+    nd4j::ops::maxpool2d pooling;
+    Nd4jStatus status = pooling.execute(block);
+    ASSERT_EQ(ND4J_STATUS_OK, status);
+
+    auto result = variableSpace->getVariable(block->getNodeId())->getNDArray();
+    // result->printShapeInfo();
+    ASSERT_TRUE(exp.isSameShape(result));
+
+    delete variableSpace;
+    delete block;
+}
+
+//////////////////////////////////////////////////////////////////////
+TEST_F(ConvolutionTests2, maxpool2d_4) {
+
+    const int bS = 2;
+    const int iD = 1;
+    const int iH = 24;
+    const int iW = 24;
+    const int kH = 3;
+    const int kW = 3;
+    const int sH = 1;
+    const int sW = 1;
+    const int pH = 0;
+    const int pW = 0;
+    const int dH = 1;
+    const int dW = 1;
+    const int oH = (iH - kH - (kH-1)*(dH-1) + 2*pH)/sH + 1;     // output height
+    const int oW = (iW - kW - (kW-1)*(dW-1) + 2*pW)/sW + 1;     // output width
+
+
+    auto x = NDArrayFactory::create_<float>('c', {bS,iD,iH,iW});
+    auto exp = NDArrayFactory::create<float>('c',{bS,iD,oH,oW});
+    // auto z('c',{bS,iD,oH,oW});
+
+    auto variableSpace = new VariableSpace();
+    variableSpace->putVariable(-1, x);
+    // variableSpace->putVariable(1, &z);
+
+    auto block = new Context(1, variableSpace, false);
+    block->fillInputs({-1});
+    std::vector<int>* argI = block->getIArguments();
+    *argI = {kH,kW, sH,sW, pH,pW, dH,dW, 0};  // 0,1 - kernel Height/Width; 2,3 - stride Height/Width; 4,5 - pad Height/Width; 6,7 - dilation Height/Width; 8 - same mode;
+
+    nd4j::ops::maxpool2d pooling;
+    Nd4jStatus status = pooling.execute(block);
+    ASSERT_EQ(ND4J_STATUS_OK, status);
+
+    auto result = variableSpace->getVariable(block->getNodeId())->getNDArray();
+    // result->printShapeInfo();
+    ASSERT_TRUE(exp.isSameShape(result));
+
+    delete variableSpace;
+    delete block;
+}
+
+//////////////////////////////////////////////////////////////////////
+TEST_F(ConvolutionTests2, maxpool2d_5) {
+
+    const int bS = 2;
+    const int iD = 1;
+    const int iH = 24;
+    const int iW = 24;
+    const int kH = 3;
+    const int kW = 3;
+    const int sH = 1;
+    const int sW = 1;
+    const int pH = 0;
+    const int pW = 0;
+    const int dH = 1;
+    const int dW = 1;
+    const int oH = (int) nd4j::math::nd4j_ceil<float, int>(iH * 1.f / sH);
+    const int oW = (int) nd4j::math::nd4j_ceil<float, int>(iW * 1.f / sW);
+
+
+    auto x = NDArrayFactory::create_<float>('c', {bS,iD,iH,iW});
+    auto exp = NDArrayFactory::create<float>('c',{bS,iD,oH,oW});
+    // auto z('c',{bS,iD,oH,oW});
+
+    auto variableSpace = new VariableSpace();
+    variableSpace->putVariable(-1, x);
+    // variableSpace->putVariable(1, &z);
+
+    auto block = new Context(1, variableSpace, false);
+    block->fillInputs({-1});
+    std::vector<int>* argI = block->getIArguments();
+    *argI = {kH,kW, sH,sW, pH,pW, dH,dW, 1};  // 0,1 - kernel Height/Width; 2,3 - stride Height/Width; 4,5 - pad Height/Width; 6,7 - dilation Height/Width; 8 - same mode;
+
+    nd4j::ops::maxpool2d pooling;
+    Nd4jStatus status = pooling.execute(block);
+    ASSERT_EQ(ND4J_STATUS_OK, status);
+
+    auto result = variableSpace->getVariable(block->getNodeId())->getNDArray();
+    // result->printShapeInfo();
+    ASSERT_TRUE(exp.isSameShape(result));
+
+    delete variableSpace;
+    delete block;
+}
+
+//////////////////////////////////////////////////////////////////////
+TYPED_TEST(TypedConvolutionTests2, maxpool2d_6) {
+    auto x = NDArrayFactory::create<TypeParam>('c', {2, 4, 4, 2});
+    auto exp = NDArrayFactory::create<TypeParam>('c', {2, 2, 2, 2}, {11.f,  12.f,  15.f,  16.f,  27.f,  28.f,  31.f,  32.f,  43.f,  44.f,  47.f,  48.f,  59.f,  60.f,  63.f, 64.f});
+
+    x.linspace(1);
+
+
+    nd4j::ops::maxpool2d op;
+    auto result = op.execute({&x}, {}, {2, 2, 2, 2, 0, 0, 1, 1, 1, 1, 1});
+
+    ASSERT_EQ(ND4J_STATUS_OK, result->status());
+
+    auto z = result->at(0);
+
+    ASSERT_TRUE(exp.isSameShape(z));
+    ASSERT_TRUE(exp.equalsTo(z));
+
+    delete result;
+}
+
+//////////////////////////////////////////////////////////////////////
+TYPED_TEST(TypedConvolutionTests2, maxpool2d_7) {
+    auto x = NDArrayFactory::create<TypeParam>('c', {2, 4, 4, 2});
+    auto exp = NDArrayFactory::create<TypeParam>('c', {2, 2, 2, 2}, {11.f,  12.f,  15.f,  16.f,  27.f,  28.f,  31.f,  32.f,  43.f,  44.f,  47.f,  48.f,  59.f,  60.f,  63.f, 64.f});
+
+    x.linspace(1);
+
+
+    nd4j::ops::maxpool2d op;
+    auto result = op.execute({&x}, {}, {2, 2, 2, 2, 0, 0, 1, 1, 0, 1, 1});
+
+    ASSERT_EQ(ND4J_STATUS_OK, result->status());
+
+    auto z = result->at(0);
+
+    ASSERT_TRUE(exp.isSameShape(z));
+    ASSERT_TRUE(exp.equalsTo(z));
+
+    delete result;
+}
+
+//////////////////////////////////////////////////////////////////////
+TYPED_TEST(TypedConvolutionTests2, maxpool2d_8) {
+    auto x = NDArrayFactory::create<TypeParam>('c', {2, 2, 5, 5});
+    auto exp = NDArrayFactory::create<TypeParam>('c', {2, 2, 2, 2}, {7.f, 9.f, 17.f, 19.f, 32.f, 34.f, 42.f, 44.f, 57.f, 59.f, 67.f, 69.f, 82.f, 84.f, 92.f, 94.f});
+
+    x.linspace(1);
+
+
+    nd4j::ops::maxpool2d op;
+    auto result = op.execute({&x}, {}, {2, 2, 2, 2, 0, 0, 1, 1, 0, 1, 0});
+
+    ASSERT_EQ(ND4J_STATUS_OK, result->status());
+
+    auto z = result->at(0);
+
+    ASSERT_TRUE(exp.isSameShape(z));
+    ASSERT_TRUE(exp.equalsTo(z));
+
+    delete result;
+}
+
+//////////////////////////////////////////////////////////////////////
+TYPED_TEST(TypedConvolutionTests2, maxpool2d_9) {
+
+    int bS = 3;                 // batch size (number of samples)
+    int iC = 3;                 // input channels
+    int iH = 28, iW = 28;       // input height/width
+    int kH = 2,  kW = 2;        // kernel (filter) height/width
+    int sH = 1,  sW = 1;        // stride height/width
+    int pH = 0,  pW = 0;        // padding height/width
+    int dH = 1,  dW = 1;        // dilation height/width
+
+    int oH = 27, oW = 27;       // output height/width
+
+    int isSameMode = 0;         // 1-SAME,  0-VALID
+
+    auto input    = NDArrayFactory::create<TypeParam>('c', {bS, iC, iH, iW});
+
+    nd4j::ops::maxpool2d op;
+    auto results = op.execute({&input}, {}, {kH,kW,  sH,sW,  pH,pW,  dH,dW, isSameMode, 1, 0});
+    auto output = results->at(0);
+
+    ASSERT_EQ(Status::OK(), results->status());
+    ASSERT_TRUE(output->isSameShape({bS, iC, oH, oW}));
+
+    delete results;
+}
+
+//////////////////////////////////////////////////////////////////////
+TYPED_TEST(TypedConvolutionTests2, maxpool2d_10) {
+
+    int bS=1, iH=4,iW=4,  iC=3,  kH=2,kW=2,  sH=1,sW=1,  pH=0,pW=0,  dH=1,dW=1;
+    int       oH=3,oW=3;
+    int paddingMode = 0;             // 1-SAME, 0-VALID;
+    int dataFormat  = 0;             // 1-NHWC, 0-NCHW
+
+    auto input    = NDArrayFactory::create<TypeParam>('c', {bS, iC, iH, iW}, {0.27620894, 0.21801452, 0.062078513, 7.348895E-4, 0.24149609, 0.4948205, 0.93483436, 0.52035654, 0.30292067, 0.3289706, 0.7977864,
+                                                     0.03180518, 0.1455722, 0.90352905, 0.9405744, 0.0048329555, 0.44062102, 0.111197524, 0.31742015, 0.1933705, 0.23825112, 0.35076278, 0.7135856, 0.28229436, 0.18310733,
+                                                     0.9613717, 0.56823575, 0.78289545, 0.62195826, 0.5244586, 0.5040889, 0.025349546, 0.41400263, 0.28420195, 0.8536445, 0.3044107, 0.7997134, 0.45762005, 0.7653578,
+                                                     0.07198584, 0.5304998, 0.7334402, 0.85019743, 0.031957153, 0.37088063, 0.85722464, 0.06376881, 0.39791203});
+
+    auto expOutput = NDArrayFactory::create<TypeParam>('c', {bS, iC, oH, oW}, {0.4948205, 0.93483436, 0.93483436, 0.4948205, 0.93483436, 0.93483436, 0.90352905, 0.9405744, 0.9405744, 0.44062102, 0.7135856,
+                                                     0.7135856, 0.9613717, 0.9613717, 0.78289545, 0.9613717, 0.9613717, 0.78289545, 0.7997134, 0.8536445, 0.8536445, 0.7997134, 0.85019743, 0.85019743,
+                                                     0.85722464, 0.85722464, 0.85019743});
+
+    nd4j::ops::maxpool2d op;
+    auto results = op.execute({&input}, {}, {kH,kW,  sH,sW,  pH,pW,  dH,dW,  paddingMode});
+    auto* output = results->at(0);
+
+    ASSERT_EQ(Status::OK(), results->status());
+
+    ASSERT_TRUE(expOutput.isSameShape(output));
+    ASSERT_TRUE(expOutput.equalsTo(output));
+
+    delete results;
+}
+
+//////////////////////////////////////////////////////////////////////
+TEST_F(ConvolutionTests2, maxpool2d_11) {
+
+    NDArray input('c', {1,1,4,5}, nd4j::DataType::FLOAT32);
+    NDArray z('c', {1,1,4,5}, nd4j::DataType::FLOAT32);
+
+    input.linspace(1.);
+
+    nd4j::ops::maxpool2d op;
+    auto results = op.execute({&input}, {}, {2,2,  1,1,  1,1,  2,2,  1,0,0});
+
+    ASSERT_EQ(Status::OK(), results->status());
+
+    delete results;
 }
 
  // @Test
