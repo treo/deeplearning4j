@@ -222,20 +222,72 @@ void ConvolutionUtils::col2vol(nd4j::graph::Context& block, const NDArray& col, 
     manager.synchronize();
 }
 
+//////////////////////////////////////////////////////////////////////////
+template <typename X, typename Y>
+static void conv2d_(nd4j::graph::Context& block, const NDArray* input, const NDArray* weights, const NDArray* bias, NDArray* output, const int kH, const int kW, const int sH, const int sW, int pH, int pW, const int dH, const int dW, const int isSameMode, const int isNCHW) {
+
+    // input   [bS, iH, iW, iC] (NHWC) or [bS, iC, iH, iW] (NCHW)
+    // weights [kH, kW, iC, oC] always
+    // bias    [oC]
+    // output  [bS, oH, oW, oC] (NHWC) or [bS, oC, oH, oW] (NCHW)
+
+    // kH  filter(kernel) height
+    // kW  filter(kernel) width
+    // sH  strides height
+    // sW  strides width
+    // pH  paddings height
+    // pW  paddings width
+    // dH  dilations height
+    // dW  dilations width
+    // isSameMode 0-VALID, 1-SAME
+    // isNCHW     1-NCHW,  0-NHWC
+
+    int bS, iC, iH, iW, oC, oH, oW;                             // batch size, input channels, input height/width, output channels, output height/width;
+    int indIOioC, indIiH, indWoC, indWiC, indWkH, indOoH;       // corresponding indexes
+    ConvolutionUtils::getSizesAndIndexesConv2d(isNCHW, *input, *output, bS, iC, iH, iW, oC, oH, oW, indIOioC, indIiH, indWiC, indWoC, indWkH, indOoH);
+
+    if(isSameMode)                       // SAME
+        ConvolutionUtils::calcPadding2D(pH, pW, oH, oW, iH, iW, kH, kW, sH, sW, dH, dW);
+
+    std::vector<int> permutForOutput;
+
+    if(isNCHW)
+        permutForOutput = {0, 3, 1, 2};                                             // [bS, oH, oW, oC] -> [bS, oC, oH, oW]
+    else
+        input = new NDArray(input->permute({0, 3, 1, 2}));                         // [bS, iH, iW, iC] -> [bS, iC, iH, iW] if NHWC
+
+    NDArray col('c', {bS, oH, oW, kH, kW, iC}, input->dataType(), input->getContext());
+    NDArray colP = col.permute({0, 5, 3, 4, 1, 2});            // {bS, iC, kH, kW, oH, oW}
+    NDArray mmulResult('f', {bS*oH*oW, oC}, output->dataType(), output->getContext());
+
+    //----- calculation of output -----//
+    auto ctx = block.launchContext();
+    helpers::im2col(*ctx, *input, colP, kH, kW, sH, sW, pH, pW, dH, dW, NDArrayFactory::create(0.f, input->getContext()));  // [bS, iC, iH, iW] is convoluted to [bS, iC, kH, kW, oH, oW]
+    MmulHelper::tensorDot(&col, weights, &mmulResult, {3,4,5}, {0,1,2}, {}); // [bS, oH, oW, kH, kW, iC] x [kH, kW, iC, oC] = [bS, oH, oW, oC]
+
+    //----- assign outTemp to output  -----//
+    if(isNCHW) {
+        mmulResult.reshapei({bS, oH, oW, oC});
+        mmulResult.permutei(permutForOutput);
+    }
+    output->assign(mmulResult);
+
+    //----- add biases if required -----//
+    if(bias)
+        output->applyBroadcast(broadcast::Add, {indIOioC}, bias);
+        // helpers::addBias(*output, *bias, isNCHW);
+
+    if(!isNCHW)
+        delete input;
+
+}
+
+void ConvolutionUtils::conv2d(nd4j::graph::Context& block, const NDArray* input, const NDArray* weights, const NDArray* bias, NDArray* output, const int kH, const int kW, const int sH, const int sW, int pH, int pW, const int dH, const int dW, const int isSameMode, const int isNCHW) {
+    BUILD_DOUBLE_SELECTOR(input->dataType(), output->dataType(), conv2d_, (block, input, weights, bias, output, kH, kW, sH, sW, pH, pW, dH, dW, isSameMode, isNCHW), LIBND4J_TYPES, FLOAT_TYPES);
+}
 
 
 
-
-
-
-
-        void ConvolutionUtils::conv2d(nd4j::graph::Context & block, const NDArray* input, const NDArray* weights, const NDArray* bias, NDArray* output, const int kH, const int kW, const int sH, const int sW, int pH, int pW, const int dH, const int dW, const int isSameMode, const int isNCHW) {
-
-        }
-
-        void ConvolutionUtils::conv2d(nd4j::graph::Context & block, const std::vector<NDArray*>& inArrs, NDArray* output, const std::vector<int>& intArgs) {
-
-        }
 
         void ConvolutionUtils::conv2dBP(nd4j::graph::Context & block, const std::vector<NDArray*>& inArrs, const std::vector<NDArray*>& outArrs, const std::vector<int>& intArgs) {
 

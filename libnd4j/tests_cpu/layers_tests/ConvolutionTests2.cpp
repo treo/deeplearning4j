@@ -184,18 +184,6 @@ TYPED_TEST(TypedConvolutionTests2, Test_DeConv2D_TF_2) {
 }
 
 //////////////////////////////////////////////////////////////////////
-TYPED_TEST(TypedConvolutionTests2, Test_Conv2D_TF_1) {
-    auto input = NDArrayFactory::create<TypeParam>('c', {54, 1, 12, 12});
-    auto weights = NDArrayFactory::create<TypeParam>('c', {1, 2, 12, 2});
-
-    nd4j::ops::conv2d op;
-    auto result = op.execute({&input, &weights}, {}, {-1,-1,  1,1,  0,0,  1,1,  1,1});
-    ASSERT_EQ(Status::OK(), result->status());
-
-    delete result;
-}
-
-//////////////////////////////////////////////////////////////////////
 TEST_F(ConvolutionTests2, Test_Dilation2D_Again_1) {
     auto x = NDArrayFactory::create<double>('c', {4, 128, 128, 4});
     auto w = NDArrayFactory::create<double>('c', {4, 5, 4});
