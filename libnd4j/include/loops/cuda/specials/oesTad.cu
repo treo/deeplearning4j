@@ -16,7 +16,6 @@
 
 //
 // @author raver119@gmail.com
-// @author Yurii Shyrma, created on 28.11.2018
 //
 
 #include <ops/specials_cuda.h>
