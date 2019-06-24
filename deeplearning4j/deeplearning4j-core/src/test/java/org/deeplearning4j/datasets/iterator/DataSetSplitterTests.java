@@ -28,7 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 public class DataSetSplitterTests extends BaseDL4JTest {
     @Test
@@ -207,6 +207,67 @@ public class DataSetSplitterTests extends BaseDL4JTest {
         }
 
         assertEquals(1000 * numEpochs, global);
+    }
+
+    @Test
+    public void testSplitter_6() {
+        val back = new DataSetGenerator(2000, new int[]{32, 100}, new int[]{32, 5});
+
+        // we're going to mimic train+test+validation split
+        val splitter = new DataSetIteratorSplitter(back, new int[]{800, 100, 100});
+
+        assertEquals(3, splitter.getIterators().asList().size());
+
+        val trainIter = splitter.getIterators().get(0);
+        val testIter = splitter.getIterators().get(1);
+        val validationIter = splitter.getIterators().get(2);
+
+        // we're going to have multiple epochs
+        int numEpochs = 10;
+        for (int e = 0; e < numEpochs; e++) {
+            int globalIter = 0;
+
+            boolean trained = false;
+            while (trainIter.hasNext()) {
+                trained = true;
+                val ds = trainIter.next();
+                assertNotNull(ds);
+
+                assertEquals("Failed at iteration [" + globalIter + "]", (double) globalIter, ds.getFeatures().getDouble(0), 1e-5f);
+                globalIter++;
+            }
+            assertTrue("Failed at epoch [" + e + "]", trained);
+
+
+            // test set is used every epoch
+            boolean tested = false;
+            while (testIter.hasNext()) {
+                tested = true;
+                val ds = testIter.next();
+                assertNotNull(ds);
+
+                assertEquals("Failed at iteration [" + globalIter + "]", (double) globalIter, ds.getFeatures().getDouble(0), 1e-5f);
+                globalIter++;
+            }
+            assertTrue("Failed at epoch [" + e + "]", tested);
+
+            // validation set is used every 5 epochs
+            if (e % 5 == 0) {
+                boolean validated = false;
+                while (validationIter.hasNext()) {
+                    validated = true;
+                    val ds = validationIter.next();
+                    assertNotNull(ds);
+
+                    assertEquals("Failed at iteration [" + globalIter + "]", (double) globalIter, ds.getFeatures().getDouble(0), 1e-5f);
+                    globalIter++;
+                }
+                assertTrue("Failed at epoch [" + e + "]", validated);
+            }
+
+
+            trainIter.reset();
+        }
     }
 
     @Test
