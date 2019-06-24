@@ -3102,7 +3102,7 @@ void NDArray::assign(const NDArray& other) {
 
 ////////////////////////////////////////////////////////////////////////
 // This method returns new copy of this NDArray, optionally in different order
-NDArray* NDArray::dup(const char newOrder) {
+NDArray* NDArray::dup(const char newOrder) const {
 
     if (isEmpty())
         return NDArrayFactory::empty_(dataType(), getContext());
