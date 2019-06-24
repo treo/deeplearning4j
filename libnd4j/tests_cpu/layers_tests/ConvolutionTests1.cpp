@@ -1420,7 +1420,7 @@ TYPED_TEST(TypedConvolutionTests1, conv3d_bp_test3) {
 }
 
 //////////////////////////////////////////////////////////////////////
-TYPED_TEST(TypedConvolutionTests1, depthwise_conv2d_test1) {
+TYPED_TEST(TypedConvolutionTests1, depthwise_conv2d_1) {
 
     int bS=2, iH=4,iW=3,  iC=2,mC=2,  kH=3,kW=2,  sH=1,sW=1,  pH=0,pW=0,  dH=1,dW=1;
     int       oC=iC*mC;
@@ -1452,7 +1452,7 @@ TYPED_TEST(TypedConvolutionTests1, depthwise_conv2d_test1) {
 }
 
 //////////////////////////////////////////////////////////////////////
-TEST_F(ConvolutionTests1, depthwise_conv2d_test2) {
+TEST_F(ConvolutionTests1, depthwise_conv2d_2) {
 
     int bS=2, iH=4,iW=3,  iC=2,mC=2,  kH=3,kW=2,  sH=1,sW=1,  pH=0,pW=0,  dH=1,dW=1;
     int       oC=iC*mC;
@@ -1483,7 +1483,7 @@ TEST_F(ConvolutionTests1, depthwise_conv2d_test2) {
 
 
 //////////////////////////////////////////////////////////////////////
-TEST_F(ConvolutionTests1, depthwise_conv2d_test3) {
+TEST_F(ConvolutionTests1, depthwise_conv2d_3) {
 
     int bS=2, iH=4,iW=3,  iC=2,mC=2,  kH=3,kW=2,  sH=1,sW=1,  pH=0,pW=0,  dH=1,dW=1;
     int       oC=iC*mC;
@@ -1506,6 +1506,93 @@ TEST_F(ConvolutionTests1, depthwise_conv2d_test3) {
     auto* output = results->at(0);
 
     // output->printIndexedBuffer();
+
+    ASSERT_EQ(Status::OK(), results->status());
+
+    ASSERT_TRUE(expOutput.isSameShape(output));
+    ASSERT_TRUE(expOutput.equalsTo(output));
+
+    delete results;
+}
+
+//////////////////////////////////////////////////////////////////////
+TEST_F(ConvolutionTests1, depthwise_conv2d_4) {
+
+    int bS=1, iH=111,iW=111,  iC=32,mC=1,  kH=7,kW=7,  sH=2,sW=2,  pH=0,pW=0,  dH=1,dW=1;
+    int       oC=iC*mC;
+    int       oH=56,oW=56;
+
+    int paddingMode = 1;             // 1-SAME, 0-VALID;
+    int dataFormat  = 1;             // 1-NHWC, 0-NCHW
+
+    const float unique = -1000000;
+
+    NDArray input('c', {bS, iH, iW, iC}, nd4j::DataType::FLOAT32);
+    NDArray weights('c', {kH, kW, iC, mC}, nd4j::DataType::FLOAT32);
+    NDArray output('c', {bS, oH, oW, oC}, nd4j::DataType::FLOAT32);
+    input.linspace(0.1, 0.0001);
+    weights = 0.5;
+    output = unique;
+
+    nd4j::ops::depthwise_conv2d op;
+    Nd4jStatus status = op.execute({&input, &weights}, {&output} , {}, {kH,kW,  sH,sW,  pH,pW,  dH,dW, paddingMode, dataFormat}, {});
+
+    ASSERT_EQ(Status::OK(), status);
+
+    for(Nd4jLong i=output.lengthOf()/1.5; i < output.lengthOf(); ++i)
+        ASSERT_EQ(output.e<float>(i) != unique, true);
+}
+
+//////////////////////////////////////////////////////////////////////
+TEST_F(ConvolutionTests1, depthwise_conv2d_5) {
+
+    int bS=1, iH=3,iW=3,  iC=2,mC=1,  kH=2,kW=2,  sH=1,sW=1,  pH=0,pW=0,  dH=1,dW=1;
+    int       oC=iC*mC;
+    int       oH=3,oW=3;
+    int paddingMode = 1;             // 1-SAME, 0-VALID;
+    int dataFormat  = 1;             // 1-NHWC, 0-NCHW
+
+    auto input   = NDArrayFactory::create<double>('c', {bS, iH, iW, iC});
+    auto weights = NDArrayFactory::create<double>('c', {kH, kW, iC, mC});
+
+
+    auto expOutput = NDArrayFactory::create<double>('c', {bS, oH, oW, oC}, {20., 24.,28., 32.,16., 18.,44., 48.,52., 56.,28., 30.,28., 30.,32., 34.,17., 18.});
+    input.linspace(1.);
+    weights = 1.;
+
+    nd4j::ops::depthwise_conv2d op;
+    auto results = op.execute({&input, &weights}, {}, {kH,kW,  sH,sW,  pH,pW,  dH,dW, paddingMode, dataFormat});
+    auto output = results->at(0);
+    // output->printIndexedBuffer();
+
+    ASSERT_EQ(Status::OK(), results->status());
+
+    ASSERT_TRUE(expOutput.isSameShape(output));
+    ASSERT_TRUE(expOutput.equalsTo(output));
+
+    delete results;
+}
+
+//////////////////////////////////////////////////////////////////////
+TEST_F(ConvolutionTests1, depthwise_conv2d_6) {
+
+    int bS=1, iH=3,iW=3,  iC=2,mC=1,  kH=2,kW=2,  sH=1,sW=1,  pH=0,pW=0,  dH=1,dW=1;
+    int       oC=iC*mC;
+    int       oH=3,oW=3;
+    int paddingMode = 1;             // 1-SAME, 0-VALID;
+    int dataFormat  = 1;             // 1-NHWC, 0-NCHW
+
+    NDArray input('c', {bS, iH, iW, iC}, nd4j::DataType::DOUBLE);
+    NDArray weights('c', {kH, kW, iC, mC}, nd4j::DataType::DOUBLE);
+
+    NDArray expOutput('c', {bS, oH, oW, oC}, {20., 24.,28., 32.,16., 18.,44., 48.,52., 56.,28., 30.,28., 30.,32., 34.,17., 18.});
+    input.linspace(1.);
+    weights = 1.;
+
+    nd4j::ops::depthwise_conv2d op;
+    ResultSet* results = op.execute({&input, &weights}, {}, {kH,kW,  sH,sW,  pH,pW,  dH,dW, paddingMode, dataFormat});
+    NDArray* output = results->at(0);
+    // output.printIndexedBuffer();
 
     ASSERT_EQ(Status::OK(), results->status());
 
@@ -2327,65 +2414,6 @@ TYPED_TEST(TypedConvolutionTests1, conv2D_input_BP_test1) {
 
     ASSERT_TRUE(shapeArr.isSameShape(epsilon));
     ASSERT_TRUE(expEps.equalsTo(epsilon));
-
-    delete results;
-}
-
-//////////////////////////////////////////////////////////////////////
-TEST_F(ConvolutionTests1, depthwise_conv2d_test4) {
-
-    int bS=1, iH=3,iW=3,  iC=2,mC=1,  kH=2,kW=2,  sH=1,sW=1,  pH=0,pW=0,  dH=1,dW=1;
-    int       oC=iC*mC;
-    int       oH=3,oW=3;
-    int paddingMode = 1;             // 1-SAME, 0-VALID;
-    int dataFormat  = 1;             // 1-NHWC, 0-NCHW
-
-    auto input   = NDArrayFactory::create<double>('c', {bS, iH, iW, iC});
-    auto weights = NDArrayFactory::create<double>('c', {kH, kW, iC, mC});
-
-
-    auto expOutput = NDArrayFactory::create<double>('c', {bS, oH, oW, oC}, {20., 24.,28., 32.,16., 18.,44., 48.,52., 56.,28., 30.,28., 30.,32., 34.,17., 18.});
-    input.linspace(1.);
-    weights = 1.;
-
-    nd4j::ops::depthwise_conv2d op;
-    auto results = op.execute({&input, &weights}, {}, {kH,kW,  sH,sW,  pH,pW,  dH,dW, paddingMode, dataFormat});
-    auto output = results->at(0);
-    // output->printIndexedBuffer();
-
-    ASSERT_EQ(Status::OK(), results->status());
-
-    ASSERT_TRUE(expOutput.isSameShape(output));
-    ASSERT_TRUE(expOutput.equalsTo(output));
-
-    delete results;
-}
-
-//////////////////////////////////////////////////////////////////////
-TEST_F(ConvolutionTests1, depthwise_conv2d_test4_1) {
-
-    int bS=1, iH=3,iW=3,  iC=2,mC=1,  kH=2,kW=2,  sH=1,sW=1,  pH=0,pW=0,  dH=1,dW=1;
-    int       oC=iC*mC;
-    int       oH=3,oW=3;
-    int paddingMode = 1;             // 1-SAME, 0-VALID;
-    int dataFormat  = 1;             // 1-NHWC, 0-NCHW
-
-    NDArray input('c', {bS, iH, iW, iC}, nd4j::DataType::DOUBLE);
-    NDArray weights('c', {kH, kW, iC, mC}, nd4j::DataType::DOUBLE);
-
-    NDArray expOutput('c', {bS, oH, oW, oC}, {20., 24.,28., 32.,16., 18.,44., 48.,52., 56.,28., 30.,28., 30.,32., 34.,17., 18.});
-    input.linspace(1.);
-    weights = 1.;
-
-    nd4j::ops::depthwise_conv2d op;
-    ResultSet* results = op.execute({&input, &weights}, {}, {kH,kW,  sH,sW,  pH,pW,  dH,dW, paddingMode, dataFormat});
-    NDArray* output = results->at(0);
-    // output.printIndexedBuffer();
-
-    ASSERT_EQ(Status::OK(), results->status());
-
-    ASSERT_TRUE(expOutput.isSameShape(output));
-    ASSERT_TRUE(expOutput.equalsTo(output));
 
     delete results;
 }

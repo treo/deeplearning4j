@@ -283,34 +283,6 @@ TEST_F(ConvolutionTests2, im2col_bp_1) {
 }
 
 //////////////////////////////////////////////////////////////////////
-TEST_F(ConvolutionTests2, depthwise_conv2d_test5) {
-
-    int bS=1, iH=111,iW=111,  iC=32,mC=1,  kH=7,kW=7,  sH=2,sW=2,  pH=0,pW=0,  dH=1,dW=1;
-    int       oC=iC*mC;
-    int       oH=56,oW=56;
-
-    int paddingMode = 1;             // 1-SAME, 0-VALID;
-    int dataFormat  = 1;             // 1-NHWC, 0-NCHW
-
-    const float unique = -1000000;
-
-    NDArray input('c', {bS, iH, iW, iC}, nd4j::DataType::FLOAT32);
-    NDArray weights('c', {kH, kW, iC, mC}, nd4j::DataType::FLOAT32);
-    NDArray output('c', {bS, oH, oW, oC}, nd4j::DataType::FLOAT32);
-    input.linspace(0.1, 0.0001);
-    weights = 0.5;
-    output = unique;
-
-    nd4j::ops::depthwise_conv2d op;
-    Nd4jStatus status = op.execute({&input, &weights}, {&output} , {}, {kH,kW,  sH,sW,  pH,pW,  dH,dW, paddingMode, dataFormat}, {});
-
-    ASSERT_EQ(Status::OK(), status);
-
-    for(Nd4jLong i=output.lengthOf()/1.5; i < output.lengthOf(); ++i)
-        ASSERT_EQ(output.e<float>(i) != unique, true);
-}
-
-//////////////////////////////////////////////////////////////////////
 TEST_F(ConvolutionTests2, conv2d_bp_4) {
 
     int bS=1, iH=7,iW=1,  iC=2,oC=3,  kH=2,kW=1,  sH=1,sW=1,  pH=0,pW=0,  dH=1,dW=1;
