@@ -184,7 +184,7 @@ public class DataSetSplitterTests extends BaseDL4JTest {
     public void testSplitter_5() {
         val back = new DataSetGenerator(1000, new int[]{32, 100}, new int[]{32, 5});
 
-        val splitter = new DataSetIteratorSplitter(back, 1000, 5);
+        val splitter = new DataSetIteratorSplitter(back, 1000, new int[]{1000});
 
         DataSetIteratorSplitter.DataSetIterators iteratorList = splitter.getIterators();
         val numEpochs = 10;
@@ -213,7 +213,7 @@ public class DataSetSplitterTests extends BaseDL4JTest {
     public void testUnorderedSplitter_1() {
         val back = new DataSetGenerator(1000, new int[]{32, 100}, new int[]{32, 5});
 
-        val splitter = new DataSetIteratorSplitter(back, 1000, 2);
+        val splitter = new DataSetIteratorSplitter(back, 1000, new int[]{500, 500});
 
         DataSetIteratorSplitter.DataSetIterators iteratorList = splitter.getIterators();
         val numEpochs = 10;
@@ -227,13 +227,14 @@ public class DataSetSplitterTests extends BaseDL4JTest {
             int partNumber = 1;
             while (iteratorList.get(partNumber).hasNext()) {
                 int farCnt = (1000 / 2) * (partNumber) + cnt;
-                val data = iteratorList.get(partNumber).next().getFeatures();
+                val data = iteratorList.get(partNumber).next(cnt).getFeatures();
 
                 assertEquals("Train failed on iteration " + cnt + "; epoch: " + e, (float) farCnt, data.getFloat(0), 1e-5);
                 cnt++;
                 global++;
             }
             iteratorList.get(partNumber).reset();
+            partNumber = 0;
             cnt = 0;
             while (iteratorList.get(0).hasNext()) {
                 val data = iteratorList.get(0).next().getFeatures();
@@ -248,7 +249,7 @@ public class DataSetSplitterTests extends BaseDL4JTest {
     public void testUnorderedSplitter_2() {
         val back = new DataSetGenerator(1000, new int[]{32, 100}, new int[]{32, 5});
 
-        val splitter = new DataSetIteratorSplitter(back, 1000, 2);
+        val splitter = new DataSetIteratorSplitter(back, 1000, new int[]{2});
 
         DataSetIteratorSplitter.DataSetIterators iteratorList = splitter.getIterators();
 
@@ -267,7 +268,7 @@ public class DataSetSplitterTests extends BaseDL4JTest {
     public void testUnorderedSplitter_3() {
         val back = new DataSetGenerator(1000, new int[]{32, 100}, new int[]{32, 5});
 
-        val splitter = new DataSetIteratorSplitter(back, 1000, 10);
+        val splitter = new DataSetIteratorSplitter(back, 1000, new int[]{10});
 
         DataSetIteratorSplitter.DataSetIterators iteratorList = splitter.getIterators();
         Random random = new Random();
@@ -279,7 +280,7 @@ public class DataSetSplitterTests extends BaseDL4JTest {
         for (int partNumber : indexes) {
             int cnt = 0;
             while (iteratorList.get(partNumber).hasNext()) {
-                val data = iteratorList.get(partNumber).next().getFeatures();
+                val data = iteratorList.get(partNumber).next(cnt).getFeatures();
 
                 assertEquals("Train failed on iteration " + cnt, (float) (500*partNumber + cnt), data.getFloat(0), 1e-5);
                 cnt++;
